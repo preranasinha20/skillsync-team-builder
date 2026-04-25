@@ -1,2 +1,6 @@
+database\UserSchema.class
 database\TeamSchema.class
 database\DBConnection.class
+database\ProjectSchema.class
+TestDB.class
+dao\ProjectDAO.class
