@@ -16,6 +16,7 @@ public class DBConnection {
 
     private static final String USERNAME = "root";
     private static final String PASSWORD = "xZCUnJHGNYYNIfeZmpzhIqOMzcsTuLmg";
+    private static final boolean DEBUG = false;
 
     private DBConnection() {}
 
@@ -24,8 +25,10 @@ public class DBConnection {
             Class.forName("com.mysql.cj.jdbc.Driver");
 
             Connection conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            System.out.println("[DBConnection] Connected successfully.");
 
+            if (DEBUG) {
+                System.out.println("[DBConnection] Connected to: " + conn.getCatalog());
+            }
             return conn;
 
         } catch (ClassNotFoundException e) {
