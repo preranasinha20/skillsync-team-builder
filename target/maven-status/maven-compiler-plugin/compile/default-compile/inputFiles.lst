@@ -1,6 +1,13 @@
-C:\Users\Manas Kumar\Downloads\SkillSync-Team-Builder\src\main\java\dao\ProjectDAO.java
-C:\Users\Manas Kumar\Downloads\SkillSync-Team-Builder\src\main\java\database\DBConnection.java
-C:\Users\Manas Kumar\Downloads\SkillSync-Team-Builder\src\main\java\database\ProjectSchema.java
-C:\Users\Manas Kumar\Downloads\SkillSync-Team-Builder\src\main\java\database\TeamSchema.java
-C:\Users\Manas Kumar\Downloads\SkillSync-Team-Builder\src\main\java\database\UserSchema.java
-C:\Users\Manas Kumar\Downloads\SkillSync-Team-Builder\src\main\java\TestDB.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/TestDB.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/TestUserDAO.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/dao/ProjectDAO.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/dao/UserDAO.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/database/DBConnection.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/database/PasswordUtil.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/database/ProjectSchema.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/database/TeamSchema.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/database/UserSchema.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/model/Skill.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/model/Student.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/model/Teacher.java
+/Users/preranasinha/SkillSync-Team-Builder/src/main/java/model/User.java
