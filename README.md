@@ -1,215 +1,134 @@
 # 🚀 SkillSync – Skill-Based Intelligent Team Builder
 
-SkillSync is a Java-based system that automatically forms **balanced and optimized teams** based on student skills and project requirements.
+SkillSync is a Java-based backend system that automatically forms optimized student teams based on skills, availability, and project requirements.
 
-It replaces manual/random team allocation with a **data-driven, scoring-based approach** to ensure fairness, efficiency, and better collaboration.
-
----
-
-## 📌 Problem Statement
-
-In academic environments, teams are often formed manually, which leads to:
-
-- Skill imbalance in teams
-- Uneven workload distribution
-- Bias in team selection
-- Inefficient collaboration
-
-SkillSync solves this by intelligently grouping students based on their skills.
+It replaces manual team allocation with a **data-driven, structured, and scalable approach** using JDBC and MySQL.
 
 ---
 
-## 🎯 Objectives
+## 📌 Key Features
 
-- Build a system to manage student skills
-- Define project requirements
-- Generate teams automatically
-- Ensure balanced skill distribution
-- Apply scoring logic to select best teams
-
----
-
-## 🧠 Core Concept
-
-The system evaluates teams based on:
-
-- **Skill Coverage** → Required skills satisfied
-- **Skill Balance** → Even distribution across members
-- **Diversity Score** → Variety of skills in team
-
-### Example Scoring Formula
-
-Score = (Coverage × 0.5) + (Balance × 0.3) + (Diversity × 0.2)
-
-The team with the **highest score is selected**.
+* 🔍 Skill-based team formation
+* ⚖ Balanced team distribution
+* 📊 Data-driven project allocation
+* 🔗 Relational database design (MySQL)
+* 🧩 Modular backend using DAO pattern
 
 ---
 
-## 🏗️ System Architecture
+## 🛠 Tech Stack
 
-User (CLI)
-↓
-Service Layer (TeamBuilderService)
-↓
-Model Layer (Student, Team, Skill)
-↓
-Database (MySQL) / File (CSV)
+* **Java (JDK 17+)**
+* **JDBC**
+* **MySQL (Railway Cloud)**
+* **Maven**
+* **Git & GitHub**
 
 ---
 
-## 🧩 Project Structure
+## 🗄 Database Design
 
-SkillSync/
-│── model/
-│ ├── Student.java
-│ ├── Skill.java
-│ ├── Team.java
-│ └── ProjectRequirement.java
+The system uses a relational database with the following core tables:
 
-│
-│── service/
-│ ├── TeamBuilderService.java
-│ └── TeamScoringStrategy.java
-│
+### 👤 Users
 
-│── strategy/
-│ ├── BalancedTeamStrategy.java
-│ └── RandomTeamStrategy.java
-│
+* Stores student details
 
-│── database/
-│ └── DatabaseManager.java
-│
-│── utils/
-│ └── CSVHandler.java
-│
+### 🧠 Skills
 
+* Stores available skills
 
-│── exceptions/
-│ ├── InvalidSkillLevelException.java
-│ └── TeamFormationException.java
-│
-│── main/
-│ └── Main.java
+### 👥 Teams (by teammate)
 
+* Handles team structure
 
+### 📁 Projects (⭐ Added by Manas)
+
+* Stores project details
+
+### 🔗 Project Skills (⭐ Added by Manas)
+
+* Maps required skills to projects
 
 ---
 
-## ⚙️ Technologies Used
+## 🧑‍💻 My Contribution (Manas Kumar)
 
-- Java (JDK 17+)
-- MySQL
-- JDBC
-- File I/O (BufferedReader, FileWriter)
-- OOP Principles
-- Strategy Design Pattern
-- Git & GitHub
-
----
-
-## 🧪 How It Works
-
-1. Add student data (skills + levels)
-2. Define project requirements
-3. Generate all possible team combinations
-4. Apply scoring algorithm
-5. Select the highest-scoring team
-6. Display or export results
+* ✅ Designed and implemented `ProjectSchema.java`
+* ✅ Created `projects` and `project_skills` tables
+* ✅ Integrated foreign key relationships with `users`
+* ✅ Configured Maven build system
+* ✅ Fixed remote database connection (Railway + JDBC)
+* ✅ Tested schema execution via Maven
 
 ---
 
-## 💻 How to Run
+## ⚙️ How to Run the Project
 
-### Prerequisites
+### 1. Clone the repository
 
-- Java JDK 17+
-- MySQL installed
-- IDE (IntelliJ / Eclipse)
+```bash
+git clone https://github.com/Manarsenic/SkillSync-Team-Builder.git
+cd SkillSync-Team-Builder
+```
 
-### Steps
+### 2. Compile using Maven
 
-1. Clone the repository
+```bash
+mvn clean compile
+```
 
-git clone https://github.com/manarsenic/SkillSync.git
+### 3. Test database connection
 
-2. Navigate to project
+```bash
+mvn exec:java -Dexec.mainClass="database.DBConnection"
+```
 
-cd SkillSync
+### 4. Create tables
 
-3. Compile
+Run schemas in this order:
 
-javac Main.java
-
-4. Run
-
-java Main
-
----
-
-## 📌 Sample CLI Menu
-
-==== SkillSync System ====
-
-1. Add Student  
-2. View Students  
-3. Define Project Requirements  
-4. Generate Team  
-5. Export Team  
-6. Exit  
+```bash
+mvn exec:java -Dexec.mainClass="database.UserSchema"
+mvn exec:java -Dexec.mainClass="database.TeamSchema"
+mvn exec:java -Dexec.mainClass="database.ProjectSchema"
+```
 
 ---
 
-## 📊 Example Output
+## 🧪 Output
 
-Best Team:
-- Rahul (Java:4, SQL:3)
-- Priya (ML:5)
-- Aman (Java:3, Python:4)
+After running schemas, database will contain:
 
-Team Score: 8.7
-
----
-
-## 🧠 OOP Concepts Used
-
-- Encapsulation → Data hiding using private variables
-- Abstraction → Interface-based design
-- Polymorphism → Multiple scoring strategies
-- Inheritance → Custom exception handling
+* users
+* skills
+* teams
+* projects
+* project_skills
 
 ---
 
-## 🔮 Future Enhancements
+## 📌 Future Improvements
 
-- Web-based interface (Spring Boot)
-- AI/ML-based team recommendations
-- Mobile application
-- Advanced analytics dashboard
-
----
-
-## 👨‍💻 Contributors
-
-- Manas Kumar  
-- Mani Chandana J  
-- Prerana Sinha  
+* Add ProjectDAO for CRUD operations
+* Implement team allocation algorithm
+* Build frontend interface
+* Add REST APIs
 
 ---
 
-## 🎓 Academic Context
+## 🤝 Contributors
 
-Developed as part of a Programming in Java Project  
-Symbiosis Institute of Technology, Pune
+* Prerana Sinha
+* Manas Kumar
+* Chandana
+
+---
+
+## 📄 License
+
+This project is licensed under the Apache 2.0 License.
 
 ---
 
-## ⭐ Final Note
-
-SkillSync demonstrates how real-world problems like team formation can be solved using:
-
-- Java  
-- OOP Design  
-- Algorithmic Thinking  
-
----
+⭐ If you like this project, consider starring the repo!
