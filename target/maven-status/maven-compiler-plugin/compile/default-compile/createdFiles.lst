@@ -1,9 +1,11 @@
 database\UserSchema.class
+model\TeamRequest.class
 TestTeamRequestDAO.class
 database\TeamSchema.class
 dao\TeamRequestDAO.class
 dao\ProjectDAO.class
 model\ProjectStatus.class
+model\Team.class
 database\PasswordUtil.class
 model\Student.class
 model\Teacher.class
