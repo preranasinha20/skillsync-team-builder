@@ -1,20 +1,19 @@
 package ui;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
 import javafx.stage.Stage;
+import ui.screens.PostProjectScreen;
 
 public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        Label label = new Label("SkillSync UI Started 🚀");
 
-        Scene scene = new Scene(label, 600, 400);
+        // Load your Post Project Screen
+        PostProjectScreen screen = new PostProjectScreen();
 
         stage.setTitle("SkillSync");
-        stage.setScene(scene);
+        stage.setScene(screen.getScene());
         stage.show();
     }
 
