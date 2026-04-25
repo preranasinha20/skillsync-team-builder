@@ -162,7 +162,7 @@ public class SkillMatcher {
     }
 
     // -------------------------
-    // Get all user names in one go (optimized)
+    // Get all user names (optimized)
     // -------------------------
     public static Map<Integer, String> getAllUserNames() {
 
@@ -219,5 +219,27 @@ public class SkillMatcher {
         }
 
         return topTeams;
+    }
+
+    
+    public static String getUserName(int userId) {
+
+        String sql = "SELECT name FROM users WHERE id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("name");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "Unknown";
     }
 }

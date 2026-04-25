@@ -14,7 +14,8 @@ public class Main extends Application {
     public void start(Stage stage) {
         primaryStage = stage;
 
-        showDashboard(); // START HERE
+        // Start from login screen
+        new LoginScreen(stage).show();
 
         stage.setTitle("SkillSync");
         stage.show();
@@ -33,6 +34,10 @@ public class Main extends Application {
     public static void showInbox() {
         InboxScreen screen = new InboxScreen();
         primaryStage.setScene(screen.getScene());
+    }
+
+    public static Stage getStage() {
+        return primaryStage;
     }
 
     public static void main(String[] args) {
