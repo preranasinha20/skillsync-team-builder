@@ -3,6 +3,8 @@ model\TeamRequest.class
 TestTeamRequestDAO.class
 database\TeamSchema.class
 dao\TeamRequestDAO.class
+ui\Main.class
+ui\SessionManager.class
 dao\ProjectDAO.class
 TestSkillMatcher.class
 model\ProjectStatus.class
