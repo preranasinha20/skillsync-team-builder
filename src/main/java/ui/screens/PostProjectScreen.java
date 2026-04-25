@@ -8,6 +8,7 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
+import ui.Main;
 
 public class PostProjectScreen {
 
@@ -15,6 +16,10 @@ public class PostProjectScreen {
 
         VBox root = new VBox(15);
         root.setPadding(new Insets(20));
+
+        // 🔙 BACK BUTTON
+        Button backBtn = new Button("⬅ Back");
+        backBtn.setOnAction(e -> Main.showDashboard());
 
         Label title = new Label("📝 Post New Project");
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
@@ -37,11 +42,11 @@ public class PostProjectScreen {
         Label status = new Label();
 
         submitBtn.setOnAction(e -> {
-            // Placeholder logic
-            status.setText("Project posted (UI only - backend pending)");
+            status.setText("✅ Project posted (UI only)");
         });
 
         root.getChildren().addAll(
+                backBtn,
                 title,
                 projectTitle,
                 description,
