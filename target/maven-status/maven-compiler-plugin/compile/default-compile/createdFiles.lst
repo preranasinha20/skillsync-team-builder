@@ -1,4 +1,5 @@
 TestTeamRequestDAO.class
+ui\screens\PostEventScreen.class
 database\TeamSchema.class
 dao\TeamRequestDAO.class
 ui\Main.class
@@ -15,11 +16,13 @@ ui\HomeFeedScreen.class
 ui\screens\DashboardScreen.class
 dao\UserDAO.class
 service\ManualTeamBuilder.class
+ui\screens\ViewStudentsScreen.class
 model\Skill.class
 service\TeamBuilder.class
 model\User.class
 TestUserDAO.class
 database\UserSchema.class
+service\StudentExporter.class
 model\TeamRequest.class
 ui\screens\InboxScreen.class
 ui\screens\ExportScreen.class

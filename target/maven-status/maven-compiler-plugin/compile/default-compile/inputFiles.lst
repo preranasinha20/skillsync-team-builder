@@ -19,6 +19,7 @@ C:\SkillSync\SkillSync-Team-Builder\src\main\java\service\Exportable.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\service\ManualTeamBuilder.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\service\SkillBalancedTeamBuilder.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\service\SkillMatcher.java
+C:\SkillSync\SkillSync-Team-Builder\src\main\java\service\StudentExporter.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\service\TeamBuilder.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\TestProjectDAO.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\TestSkillMatcher.java
@@ -32,7 +33,9 @@ C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\RegisterScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\DashboardScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\ExportScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\InboxScreen.java
+C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\PostEventScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\PostProjectScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\TeacherHomeScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\TeamBuilderScreen.java
+C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\screens\ViewStudentsScreen.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\ui\SessionManager.java
