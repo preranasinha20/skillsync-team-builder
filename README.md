@@ -52,16 +52,6 @@ The system uses a relational database with the following core tables:
 
 ---
 
-## 🧑‍💻 My Contribution (Manas Kumar)
-
-* ✅ Designed and implemented `ProjectSchema.java`
-* ✅ Created `projects` and `project_skills` tables
-* ✅ Integrated foreign key relationships with `users`
-* ✅ Configured Maven build system
-* ✅ Fixed remote database connection (Railway + JDBC)
-* ✅ Tested schema execution via Maven
-
----
 
 ## ⚙️ How to Run the Project
 
@@ -119,10 +109,10 @@ After running schemas, database will contain:
 
 ## 🤝 Contributors
 
-* Prerana Sinha
+
 * Manas Kumar
 * Chandana
-
+* Prerana Sinha
 ---
 
 ## 📄 License
