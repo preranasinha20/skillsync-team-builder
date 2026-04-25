@@ -1,62 +1,67 @@
 package dao;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 
 import database.DBConnection;
+import model.Project;
 
 public class ProjectDAO {
 
-    // 🔹 1. INSERT PROJECT
-    public static boolean addProject(int ownerId, String title, String description,
-                                     String status, String branch, int batch,
-                                     int teamSize, Date deadline) {
-
-        String query = "INSERT INTO projects (owner_id, title, description, status, branch, batch, team_size, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query)) {
-
-            ps.setInt(1, ownerId);
-            ps.setString(2, title);
-            ps.setString(3, description);
-            ps.setString(4, status);
-            ps.setString(5, branch);
-            ps.setInt(6, batch);
-            ps.setInt(7, teamSize);
-            ps.setDate(8, deadline);
-
-            int rows = ps.executeUpdate();
-            return rows > 0;
-
-        } catch (Exception e) {
-            System.out.println("Error inserting project: " + e.getMessage());
-            return false;
-        }
-    }
-
-    // 🔹 2. GET ALL PROJECTS
-    public static void getAllProjects() {
-
-        String query = "SELECT * FROM projects";
+    // CREATE PROJECT
+    public int createProject(Project project) {
+        String sql = """
+            INSERT INTO projects 
+            (owner_id, title, description, team_size, batch, branch, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """;
 
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id"));
-                System.out.println("Title: " + rs.getString("title"));
-                System.out.println("Status: " + rs.getString("status"));
-                System.out.println("Team Size: " + rs.getInt("team_size"));
-                System.out.println("------------------------");
+            stmt.setInt(1, project.getOwnerId());
+            stmt.setString(2, project.getTitle());
+            stmt.setString(3, project.getDescription());
+            stmt.setInt(4, project.getTeamSize());
+            stmt.setInt(5, project.getBatch());
+            stmt.setString(6, project.getBranch());
+            stmt.setString(7, project.getStatus().name());
+
+            stmt.executeUpdate();
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1);
             }
 
         } catch (Exception e) {
-            System.out.println("Error fetching projects: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+    // ADD PROJECT SKILLS
+    public void addProjectSkills(int projectId, List<String> skills) {
+
+        String sql = "INSERT INTO project_skills (project_id, skill_name) VALUES (?, ?)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            for (String skill : skills) {
+                stmt.setInt(1, projectId);
+                stmt.setString(2, skill);
+                stmt.addBatch();
+            }
+
+            stmt.executeBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
