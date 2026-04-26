@@ -2,11 +2,9 @@ package ui;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
-
 import ui.screens.DashboardScreen;
-import ui.screens.PostProjectScreen;
 import ui.screens.InboxScreen;
-import ui.screens.LoginScreen;
+import ui.screens.PostProjectScreen;
 
 public class Main extends Application {
 
