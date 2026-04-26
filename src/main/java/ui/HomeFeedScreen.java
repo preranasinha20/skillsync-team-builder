@@ -1,18 +1,29 @@
 package ui;
 
+import java.util.List;
+
 import dao.ProjectDAO;
 import dao.UserDAO;
-import model.Project;
-import model.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import java.util.List;
+import model.Project;
+import model.User;
+import ui.screens.ProjectDetailScreen;
 
 public class HomeFeedScreen {
 
@@ -255,9 +266,8 @@ public class HomeFeedScreen {
         ));
 
         viewBtn.setOnAction(e -> {
-            // Manas's ProjectDetailScreen goes here
-            showAlert("Project Detail screen coming soon — Manas is building this!");
-        });
+    new ProjectDetailScreen(stage, project).show();
+});
 
         card.getChildren().addAll(titleRow, desc, metaRow, viewBtn);
         return card;
