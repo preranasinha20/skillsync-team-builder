@@ -1,12 +1,17 @@
 package ui.screens;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import database.DBConnection;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
-import ui.Main;
+import ui.SessionManager;
 
 public class InboxScreen {
 
@@ -14,39 +19,95 @@ public class InboxScreen {
 
         VBox root = new VBox(15);
         root.setPadding(new Insets(20));
-
-        // 🔙 BACK BUTTON
-        Button backBtn = new Button("⬅ Back");
-        backBtn.setOnAction(e -> Main.showDashboard());
+        root.setStyle("-fx-background-color: #f0f2f5;");
 
         Label title = new Label("📥 Inbox");
-        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1a1a2e;");
 
-        // 📦 SAMPLE REQUEST CARD
-        VBox requestCard = new VBox(10);
-        requestCard.setStyle("-fx-border-color: lightgray; -fx-padding: 10; -fx-background-color: white;");
+        VBox list = new VBox(10);
 
-        Label project = new Label("Project: AI Team Builder");
-        Label from = new Label("From: Student_123");
-        Label match = new Label("Match: 87%");
+        int userId = SessionManager.getUser().getId();
 
-        HBox actions = new HBox(10);
+        try {
+            Connection conn = DBConnection.getConnection();
 
-        Button accept = new Button("✔ Accept");
+            String sql = "SELECT * FROM team_requests WHERE receiver_id = ? AND status = 'PENDING'";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, userId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            boolean hasData = false;
+
+            while (rs.next()) {
+                hasData = true;
+
+                int id = rs.getInt("id");
+                int projectId = rs.getInt("project_id");
+                int senderId = rs.getInt("sender_id");
+                String type = rs.getString("type");
+
+                list.getChildren().add(buildCard(id, projectId, senderId, type));
+            }
+
+            if (!hasData) {
+                Label empty = new Label("No requests yet");
+                empty.setStyle("-fx-text-fill: #6c757d;");
+                list.getChildren().add(empty);
+            }
+
+        } catch (Exception e) {
+            Label error = new Label("Error loading requests");
+            error.setStyle("-fx-text-fill: red;");
+            list.getChildren().add(error);
+            e.printStackTrace();
+        }
+
+        ScrollPane scroll = new ScrollPane(list);
+        scroll.setFitToWidth(true);
+
+        root.getChildren().addAll(title, scroll);
+
+        return new Scene(root, 700, 500);
+    }
+
+    private VBox buildCard(int requestId, int projectId, int senderId, String type) {
+
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(15));
+        card.setStyle(
+                "-fx-background-color: white;" +
+                "-fx-background-radius: 8;" +
+                "-fx-border-color: #dee2e6;" +
+                "-fx-border-radius: 8;"
+        );
+
+        Label info = new Label(
+                "Project: " + projectId +
+                " | From User: " + senderId +
+                " | Type: " + type
+        );
+
+        Button accept = new Button("Accept");
+        Button reject = new Button("Reject");
+
         accept.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white;");
+        reject.setStyle("-fx-background-color: #e94560; -fx-text-fill: white;");
 
-        Button reject = new Button("✖ Reject");
-        reject.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
+        Label status = new Label();
 
-        accept.setOnAction(e -> match.setText("Accepted ✅"));
-        reject.setOnAction(e -> match.setText("Rejected ❌"));
+        accept.setOnAction(e -> {
+            dao.TeamRequestDAO.acceptRequest(requestId);
+            status.setText("Accepted ✔");
+        });
 
-        actions.getChildren().addAll(accept, reject);
+        reject.setOnAction(e -> {
+            dao.TeamRequestDAO.rejectRequest(requestId);
+            status.setText("Rejected ✖");
+        });
 
-        requestCard.getChildren().addAll(project, from, match, actions);
+        card.getChildren().addAll(info, accept, reject, status);
 
-        root.getChildren().addAll(backBtn, title, requestCard);
-
-        return new Scene(root, 600, 400);
+        return card;
     }
 }
