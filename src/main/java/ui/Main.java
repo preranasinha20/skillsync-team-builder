@@ -2,9 +2,11 @@ package ui;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
+
 import ui.screens.DashboardScreen;
-import ui.screens.InboxScreen;
 import ui.screens.PostProjectScreen;
+import ui.screens.InboxScreen;
+import ui.screens.LoginScreen;
 
 public class Main extends Application {
 
@@ -14,12 +16,14 @@ public class Main extends Application {
     public void start(Stage stage) {
         primaryStage = stage;
 
-        showDashboard(); // START HERE
+        // Start with login (IMPORTANT - do not change)
+        new LoginScreen(stage).show();
 
         stage.setTitle("SkillSync");
         stage.show();
     }
 
+    // Navigation methods (your system - keep these)
     public static void showDashboard() {
         DashboardScreen screen = new DashboardScreen();
         primaryStage.setScene(screen.getScene());
@@ -33,6 +37,10 @@ public class Main extends Application {
     public static void showInbox() {
         InboxScreen screen = new InboxScreen();
         primaryStage.setScene(screen.getScene());
+    }
+
+    public static Stage getStage() {
+        return primaryStage;
     }
 
     public static void main(String[] args) {
