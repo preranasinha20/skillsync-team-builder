@@ -250,4 +250,21 @@ public class UserDAO {
             return new Student(id, name, email, passHash, branch, batch, bio, createdAt);
         }
     }
+    public static List<Integer> getAllBatches() {
+        List<Integer> batches = new ArrayList<>();
+        String sql = "SELECT DISTINCT batch FROM users ORDER BY batch DESC";
+    
+        try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+    
+            while (rs.next()) {
+                batches.add(rs.getInt("batch"));
+            }
+    
+        } catch (SQLException e) {
+            System.err.println("[UserDAO] getAllBatches failed: " + e.getMessage());
+        }
+    
+        return batches;
+    }
 }

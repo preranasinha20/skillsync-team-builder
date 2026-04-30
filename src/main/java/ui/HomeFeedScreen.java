@@ -13,11 +13,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.*;
 import javafx.stage.Stage;
 import java.util.List;
+import javafx.scene.control.ComboBox;
 
 public class HomeFeedScreen {
 
     private Stage stage;
     private User currentUser;
+    private ComboBox<Integer> batchDropdown;
 
     public HomeFeedScreen(Stage stage) {
         this.stage = stage;
@@ -75,11 +77,11 @@ public class HomeFeedScreen {
         branchFilter.setPromptText("Filter by branch");
         branchFilter.setPrefWidth(160);
         styleField(branchFilter);
-
-        TextField batchFilter = new TextField();
+        
+        ComboBox<Integer> batchFilter = new ComboBox<>();
         batchFilter.setPromptText("Filter by batch");
         batchFilter.setPrefWidth(140);
-        styleField(batchFilter);
+        batchFilter.getItems().addAll(UserDAO.getAllBatches());
 
         Button filterBtn = new Button("Search");
         styleAccentButton(filterBtn);
@@ -110,15 +112,15 @@ public class HomeFeedScreen {
 
         filterBtn.setOnAction(e -> {
             String branch = branchFilter.getText().trim();
-            String batchStr = batchFilter.getText().trim();
-            loadProjects(cardsContainer, 
+            Integer batch = batchFilter.getValue();
+            loadProjects(cardsContainer,
                 branch.isEmpty() ? null : branch,
-                batchStr.isEmpty() ? null : batchStr);
+                batch);
         });
 
         clearBtn.setOnAction(e -> {
             branchFilter.clear();
-            batchFilter.clear();
+            batchFilter.setValue(null);
             loadProjects(cardsContainer, null, null);
         });
 
@@ -138,14 +140,15 @@ public class HomeFeedScreen {
     }
 
     // ── Load projects into cards ─────────────────────────────────
-    private void loadProjects(VBox container, String branch, String batchStr) {
+    private void loadProjects(VBox container, String branch, Integer batch) {
         container.getChildren().clear();
 
         List<Project> projects;
-        if (branch != null || batchStr != null) {
-            int batch = 0;
-            try { batch = Integer.parseInt(batchStr); } catch (Exception e) {}
-            projects = ProjectDAO.getOpenProjectsByBatchAndBranch(batch, branch);
+        if (branch != null || batch != null) {
+            projects = ProjectDAO.getOpenProjectsByBatchAndBranch(
+                batch == null ? 0 : batch,
+                branch
+            );
         } else {
             projects = ProjectDAO.getAllOpenProjects();
         }
