@@ -30,9 +30,20 @@ public class LoginScreen {
         this.stage = stage;
     }
 
+    /** Called from Main.start() — shows the login screen on the stage. */
     public void show() {
+        stage.setScene(getLoginScene());
+        stage.setTitle("SkillSync — Login");
+        stage.show();
+    }
 
-        // ── Left panel ──────────────────────────────────────────
+    /**
+     * Returns the login Scene.
+     * Used by TeacherHomeScreen logout button (which only has a Stage, no LoginScreen instance).
+     */
+    public Scene getLoginScene() {
+
+        // ── Left panel ───────────────────────────────────────────
         VBox leftPanel = new VBox(12);
         leftPanel.setPrefWidth(420);
         leftPanel.setAlignment(Pos.CENTER);
@@ -54,7 +65,7 @@ public class LoginScreen {
 
         leftPanel.getChildren().addAll(brand, tagline, new Label(""), desc);
 
-        // ── Right panel ─────────────────────────────────────────
+        // ── Right panel ──────────────────────────────────────────
         VBox rightPanel = new VBox(14);
         rightPanel.setPrefWidth(480);
         rightPanel.setAlignment(Pos.CENTER);
@@ -102,15 +113,9 @@ public class LoginScreen {
 
             SessionManager.setUser(user);
 
-            // ✅ ONLY CHANGE: ROLE-BASED ROUTING
             if ("TEACHER".equalsIgnoreCase(user.getRole())) {
-
-                // Go to your teacher UI
                 stage.setScene(new TeacherHomeScreen().getScene());
-
             } else {
-
-                // Keep existing student flow EXACTLY same
                 new HomeFeedScreen(stage).show();
             }
         });
@@ -130,15 +135,11 @@ public class LoginScreen {
             registerLink
         );
 
-        // ── Root layout ─────────────────────────────────────────
         HBox root = new HBox(leftPanel, rightPanel);
-
-        Scene scene = new Scene(root, 900, 600);
-        stage.setTitle("SkillSync — Login");
-        stage.setScene(scene);
-        stage.show();
+        return new Scene(root, 900, 600);
     }
 
+    // ── Style helpers ────────────────────────────────────────────
     private Label fieldLabel(String text) {
         Label lbl = new Label(text);
         lbl.setFont(Font.font("Arial", FontWeight.BOLD, 12));

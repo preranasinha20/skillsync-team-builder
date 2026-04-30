@@ -1,3 +1,4 @@
+C:\SkillSync\SkillSync-Team-Builder\src\main\java\dao\EventDAO.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\dao\ProjectDAO.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\dao\TeamRequestDAO.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\dao\UserDAO.java
@@ -6,6 +7,7 @@ C:\SkillSync\SkillSync-Team-Builder\src\main\java\database\PasswordUtil.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\database\ProjectSchema.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\database\TeamSchema.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\database\UserSchema.java
+C:\SkillSync\SkillSync-Team-Builder\src\main\java\model\Event.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\model\Project.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\model\ProjectStatus.java
 C:\SkillSync\SkillSync-Team-Builder\src\main\java\model\Skill.java
