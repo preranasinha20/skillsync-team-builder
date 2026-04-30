@@ -226,4 +226,22 @@ public class TeamRequestDAO {
             e.printStackTrace();
         }
     }
-}
+
+public static int getPendingRequestCount(int userId) {
+    try (Connection conn = DBConnection.getConnection()) {
+
+        String sql = "SELECT COUNT(*) FROM team_requests WHERE receiver_id = ? AND status = 'PENDING'";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, userId);
+
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            return rs.getInt(1);
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return 0;
+}}
+

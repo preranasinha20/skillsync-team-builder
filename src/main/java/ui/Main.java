@@ -28,7 +28,7 @@ public class Main extends Application {
     }
 
     public static void showPostProject() {
-        PostProjectScreen screen = new PostProjectScreen();
+        PostProjectScreen screen = new PostProjectScreen(primaryStage);
         primaryStage.setScene(screen.getScene());
     }
 

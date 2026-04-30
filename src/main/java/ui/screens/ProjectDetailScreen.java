@@ -1,13 +1,24 @@
 package ui.screens;
 
+import dao.TeamRequestDAO;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import model.Project;
-import ui.Main;
+import ui.HomeFeedScreen;
+import ui.SessionManager;
 
 public class ProjectDetailScreen {
 
@@ -21,78 +32,118 @@ public class ProjectDetailScreen {
 
     public void show() {
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(25));
-        root.setStyle("-fx-background-color: #f0f2f5;");
+        VBox root = new VBox();
+        root.setStyle("-fx-background-color: #f4f6f9;");
 
-        // 🔹 Back button
-        Button backBtn = new Button("← Back");
-        backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #1a1a2e;");
-        backBtn.setOnAction(e -> Main.showDashboard());
+        // 🔹 NAVBAR
+        HBox navbar = new HBox();
+        navbar.setPadding(new Insets(16, 28, 16, 28));
+        navbar.setAlignment(Pos.CENTER_LEFT);
+        navbar.setStyle("-fx-background-color: #1a1a2e;");
 
-        // 🔹 Card container
-        VBox card = new VBox(12);
-        card.setPadding(new Insets(20));
+        Text title = new Text("Project Details");
+        title.setFill(Color.WHITE);
+        title.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button back = new Button("← Back");
+        back.setStyle("-fx-background-color: transparent; -fx-text-fill: #dcdcdc;");
+        back.setOnAction(e -> new HomeFeedScreen(stage).show());
+
+        navbar.getChildren().addAll(title, spacer, back);
+
+        // 🔹 CARD
+        VBox card = new VBox(16);
+        card.setPadding(new Insets(30));
+        card.setMaxWidth(600);
+
         card.setStyle(
             "-fx-background-color: white;" +
-            "-fx-background-radius: 10;" +
-            "-fx-border-radius: 10;" +
-            "-fx-border-color: #dee2e6;"
+            "-fx-background-radius: 16;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 20, 0, 0, 6);"
         );
 
-        // 🔹 Title
-        Label title = new Label(project.getTitle());
-        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1a1a2e;");
+        Text name = new Text(project.getTitle());
+        name.setFont(Font.font("Georgia", FontWeight.BOLD, 22));
 
-        // 🔹 Description
-        Label desc = new Label(project.getDescription());
-        desc.setWrapText(true);
-        desc.setStyle("-fx-text-fill: #6c757d;");
+        Text desc = new Text(project.getDescription());
+        desc.setFill(Color.web("#555"));
+        desc.setWrappingWidth(500);
 
-        // 🔹 Meta info (clean spacing)
-        Label branch = meta("Branch: " + project.getBranch());
-        Label batch = meta("Batch: " + project.getBatch());
-        Label team = meta("Team Size: " + project.getTeamSize());
-        Label status = meta("Status: " + project.getStatusString());
+        HBox tags = new HBox(10);
+        tags.getChildren().addAll(
+                chip(project.getBranch()),
+                chip(String.valueOf(project.getBatch())),
+                chip("Team: " + project.getTeamSize())
+        );
 
-        // 🔹 Apply button
-        Button applyBtn = new Button("Request to Join");
-        applyBtn.setStyle(
-            "-fx-background-color: #e94560;" +
+        Label status = new Label("Status: " + project.getStatusString());
+        status.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+
+        Button apply = new Button("Request to Join");
+        apply.setPrefHeight(40);
+        apply.setStyle(
+            "-fx-background-color: linear-gradient(to right, #e94560, #ff6b81);" +
             "-fx-text-fill: white;" +
             "-fx-font-weight: bold;" +
-            "-fx-padding: 10 20;" +
-            "-fx-background-radius: 6;"
+            "-fx-background-radius: 10;"
         );
-        
 
-        Label actionStatus = new Label();
+        Label feedback = new Label();
 
-applyBtn.setOnAction(e -> {
-    actionStatus.setText("Request sent successfully ✔");
-});
+        apply.setOnAction(e -> {
+            try {
+                int sender = SessionManager.getUser().getId();
+                int receiver = project.getOwnerId();
 
-        // 🔹 Assemble card
+                boolean ok = TeamRequestDAO.sendRequest(
+                        project.getId(),
+                        sender,
+                        receiver,
+                        "JOIN",
+                        "Wants to join"
+                );
+
+                if (ok) {
+                    feedback.setText("Request sent ✔");
+                    feedback.setStyle("-fx-text-fill: green;");
+                } else {
+                    feedback.setText("Already requested");
+                    feedback.setStyle("-fx-text-fill: orange;");
+                }
+
+            } catch (Exception ex) {
+                feedback.setText("Error");
+                feedback.setStyle("-fx-text-fill: red;");
+            }
+        });
+
         card.getChildren().addAll(
-                title,
+                name,
                 desc,
-                branch,
-                batch,
-                team,
+                tags,
                 status,
-                applyBtn,
-                actionStatus
+                apply,
+                feedback
         );
 
-        root.getChildren().addAll(backBtn, card);
+        StackPane center = new StackPane(card);
+        center.setPadding(new Insets(50));
 
-        stage.setScene(new Scene(root, 650, 450));
+        root.getChildren().addAll(navbar, center);
+
+        stage.setScene(new Scene(root, 920, 620));
     }
 
-    // 🔹 helper for consistent text styling
-    private Label meta(String text) {
+    private Label chip(String text) {
         Label lbl = new Label(text);
-        lbl.setStyle("-fx-text-fill: #495057;");
+        lbl.setStyle(
+            "-fx-background-color: #eef1f6;" +
+            "-fx-padding: 5 12;" +
+            "-fx-background-radius: 8;"
+        );
         return lbl;
     }
 }

@@ -1,7 +1,7 @@
 package ui;
 
 import java.util.List;
-
+import dao.TeamRequestDAO;
 import dao.ProjectDAO;
 import dao.UserDAO;
 import javafx.geometry.Insets;
@@ -23,6 +23,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import model.Project;
 import model.User;
+import ui.screens.PostProjectScreen;
 import ui.screens.ProjectDetailScreen;
 
 public class HomeFeedScreen {
@@ -37,38 +38,59 @@ public class HomeFeedScreen {
 
     public void show() {
 
-        // ── Top navbar ───────────────────────────────────────────
-        HBox navbar = new HBox();
-        navbar.setPadding(new Insets(0, 24, 0, 24));
-        navbar.setPrefHeight(56);
-        navbar.setAlignment(Pos.CENTER_LEFT);
-        navbar.setStyle("-fx-background-color: #1a1a2e;");
+// ── Top navbar ───────────────────────────────────────────
+HBox navbar = new HBox();
+navbar.setPadding(new Insets(0, 24, 0, 24));
+navbar.setPrefHeight(56);
+navbar.setAlignment(Pos.CENTER_LEFT);
+navbar.setStyle("-fx-background-color: #1a1a2e;");
 
-        Text logo = new Text("SkillSync");
-        logo.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
-        logo.setFill(Color.WHITE);
+Text logo = new Text("SkillSync");
+logo.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
+logo.setFill(Color.WHITE);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+Region spacer = new Region();
+HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        String userName = currentUser != null ? currentUser.getName() : "Guest";
-        Label userLabel = new Label("👤  " + userName);
-        userLabel.setFont(Font.font("Arial", 13));
-        userLabel.setTextFill(Color.web("#aaaaaa"));
+// ✅ username FIRST
+String userName = currentUser != null ? currentUser.getName() : "Guest";
 
-        Button profileBtn = navButton("My Profile");
-        Button logoutBtn  = navButton("Logout");
+Label userLabel = new Label("👤  " + userName);
+userLabel.setFont(Font.font("Arial", 13));
+userLabel.setTextFill(Color.web("#aaaaaa"));
 
-        profileBtn.setOnAction(e -> new ProfileScreen(stage).show());
-        logoutBtn.setOnAction(e -> {
-            SessionManager.clear();
-            new LoginScreen(stage).show();
-        });
+// ✅ request count
+int requestCount = TeamRequestDAO.getPendingRequestCount(
+        SessionManager.getUser().getId()
+);
 
-        navbar.getChildren().addAll(logo, spacer, userLabel,
-            new Label("   "), profileBtn,
-            new Label("   "), logoutBtn);
+// ✅ buttons
+Button inboxBtn = navButton(
+        "Inbox" + (requestCount > 0 ? " (" + requestCount + ")" : "")
+);
 
+Button profileBtn = navButton("My Profile");
+Button logoutBtn  = navButton("Logout");
+
+// ✅ actions (ONLY ONCE)
+inboxBtn.setOnAction(e -> {
+    stage.setScene(new ui.screens.InboxScreen().getScene());
+});
+
+profileBtn.setOnAction(e -> new ProfileScreen(stage).show());
+
+logoutBtn.setOnAction(e -> {
+    SessionManager.clear();
+    new LoginScreen(stage).show();
+});
+
+// ✅ add to navbar
+navbar.getChildren().addAll(
+        logo, spacer, userLabel,
+        new Label("   "), inboxBtn,
+        new Label("   "), profileBtn,
+        new Label("   "), logoutBtn
+);
         // ── Filter bar ───────────────────────────────────────────
         HBox filterBar = new HBox(12);
         filterBar.setPadding(new Insets(16, 24, 16, 24));
@@ -102,8 +124,7 @@ public class HomeFeedScreen {
         Button postBtn = new Button("+ Post Project");
         stylePrimaryButton(postBtn);
         postBtn.setOnAction(e -> {
-            // Manas's screen — stub for now
-            showAlert("Post Project screen coming soon!");
+        stage.setScene(new PostProjectScreen(stage).getScene());
         });
 
         filterBar.getChildren().addAll(

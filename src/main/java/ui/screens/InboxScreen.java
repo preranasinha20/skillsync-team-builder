@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import dao.TeamRequestDAO;
 import database.DBConnection;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -96,15 +97,15 @@ public class InboxScreen {
 
         Label status = new Label();
 
-        accept.setOnAction(e -> {
-            dao.TeamRequestDAO.acceptRequest(requestId);
-            status.setText("Accepted ✔");
-        });
+accept.setOnAction(e -> {
+    TeamRequestDAO.acceptRequest(requestId);
+    status.setText("Accepted ✔");
+});
 
-        reject.setOnAction(e -> {
-            dao.TeamRequestDAO.rejectRequest(requestId);
-            status.setText("Rejected ✖");
-        });
+reject.setOnAction(e -> {
+    TeamRequestDAO.rejectRequest(requestId);
+    status.setText("Rejected ✖");
+});
 
         card.getChildren().addAll(info, accept, reject, status);
 
