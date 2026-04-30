@@ -14,7 +14,7 @@ public class Main extends Application {
     public void start(Stage stage) {
         primaryStage = stage;
 
-        // Start with login (IMPORTANT - do not change)
+        // Start from login screen
         new LoginScreen(stage).show();
 
         stage.setTitle("SkillSync");

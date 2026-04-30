@@ -67,10 +67,10 @@ public class ProfileScreen {
         HBox metaRow = new HBox(16);
         metaRow.setAlignment(Pos.CENTER_LEFT);
         metaRow.getChildren().addAll(
-            metaTag("📧 " + currentUser.getEmail()),
-            metaTag("🏫 " + currentUser.getBranch()),
-            metaTag("📅 Batch " + currentUser.getBatch()),
-            metaTag("🎓 " + currentUser.getRole())
+            metaTag(currentUser.getEmail()),
+            metaTag(currentUser.getBranch()),
+            metaTag(String.valueOf(currentUser.getBatch())),
+            metaTag(currentUser.getRole())
         );
 
         // Bio section
@@ -91,9 +91,9 @@ public class ProfileScreen {
             currentUser.setBio(bioField.getText().trim());
             boolean saved = UserDAO.updateProfile(currentUser);
             if (saved) {
-                showAlert("✅ Bio updated successfully!");
+                showAlert("Bio updated successfully!");
             } else {
-                showAlert("❌ Failed to update bio.");
+                showAlert("Failed to update bio.");
             }
         });
 

@@ -1,25 +1,27 @@
 package dao;
 
-import model.Skill;
-import model.Student;
-import model.Teacher;
-import model.User;
-import database.DBConnection;
-
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import database.DBConnection;
+import model.Skill;
+import model.Student;
+import model.Teacher;
+import model.User;
+
 public class UserDAO {
 
     // ─── REGISTER ──────────────────────────────────────────────────────────
-
     public static boolean registerUser(User user) {
         String sql = "INSERT INTO users (name, email, password_hash, role, branch, batch, bio) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        // try-with-resources — statement closes automatically even if exception thrown
         try (PreparedStatement stmt = DBConnection.getConnection()
                 .prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -47,7 +49,6 @@ public class UserDAO {
     }
 
     // ─── LOGIN ─────────────────────────────────────────────────────────────
-
     public static User loginUser(String email, String passwordHash) {
         String sql = "SELECT * FROM users WHERE email = ? AND password_hash = ?";
 
@@ -67,7 +68,6 @@ public class UserDAO {
     }
 
     // ─── GET USER BY ID ────────────────────────────────────────────────────
-
     public static User getUserById(int userId) {
         String sql = "SELECT * FROM users WHERE id = ?";
 
@@ -85,33 +85,39 @@ public class UserDAO {
         return null;
     }
 
-    // ─── GET ALL STUDENTS IN A BATCH + BRANCH ─────────────────────────────
-
+    // ─── GET ALL STUDENTS IN A BATCH + BRANCH (FIXED) ──────────────────────
     public static List<Student> getStudentsByBatchAndBranch(int batch, String branch) {
+
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM users WHERE role = 'STUDENT' AND batch = ? AND branch = ?";
+
+        String sql = "SELECT * FROM users " +
+                     "WHERE role = 'STUDENT' " +
+                     "AND batch = ? " +
+                     "AND LOWER(TRIM(branch)) = LOWER(TRIM(?))";
 
         try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+
             stmt.setInt(1, batch);
-            stmt.setString(2, branch);
+            stmt.setString(2, branch.trim());
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     User user = mapResultSetToUser(rs);
-                    // safe cast — only fetching STUDENT role rows
+
                     if (user instanceof Student) {
                         students.add((Student) user);
                     }
                 }
             }
+
         } catch (SQLException e) {
             System.err.println("[UserDAO] getStudentsByBatchAndBranch failed: " + e.getMessage());
         }
+
         return students;
     }
 
     // ─── UPDATE PROFILE ────────────────────────────────────────────────────
-
     public static boolean updateProfile(User user) {
         String sql = "UPDATE users SET name = ?, branch = ?, batch = ?, bio = ? WHERE id = ?";
 
@@ -129,12 +135,12 @@ public class UserDAO {
     }
 
     // ─── CHECK IF EMAIL EXISTS ─────────────────────────────────────────────
-
     public static boolean emailExists(String email) {
         String sql = "SELECT id FROM users WHERE email = ?";
 
         try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
             stmt.setString(1, email);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next();
             }
@@ -145,7 +151,6 @@ public class UserDAO {
     }
 
     // ─── SKILLS ────────────────────────────────────────────────────────────
-
     public static boolean addSkill(int userId, String skillName, String proficiency) {
         String sql = "INSERT INTO skills (user_id, skill_name, proficiency) VALUES (?, ?, ?)";
 
@@ -174,12 +179,14 @@ public class UserDAO {
 
     public static List<Skill> getSkillsByUser(int userId) {
         List<Skill> skills = new ArrayList<>();
+
         String sql = "SELECT id, skill_name, proficiency FROM skills WHERE user_id = ?";
-    
+
         try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+
             stmt.setInt(1, userId);
             ResultSet rs = stmt.executeQuery();
-    
+
             while (rs.next()) {
                 skills.add(new Skill(
                         rs.getInt("id"),
@@ -187,32 +194,30 @@ public class UserDAO {
                         rs.getString("proficiency")
                 ));
             }
-    
+
         } catch (SQLException e) {
             System.err.println("[UserDAO] getSkillsByUser failed: " + e.getMessage());
         }
-    
+
         return skills;
     }
 
     // ─── PRIVATE HELPER ────────────────────────────────────────────────────
-
     private static User mapResultSetToUser(ResultSet rs) throws SQLException {
-        int id                  = rs.getInt("id");
-        String name             = rs.getString("name");
-        String email            = rs.getString("email");
-        String passHash         = rs.getString("password_hash");
-        String role             = rs.getString("role");
-        String branch           = rs.getString("branch");
-        int batch               = rs.getInt("batch");
-        String bio              = rs.getString("bio");
 
-        // createdAt properly loaded from DB now
-        Timestamp ts            = rs.getTimestamp("created_at");
+        int id = rs.getInt("id");
+        String name = rs.getString("name");
+        String email = rs.getString("email");
+        String passHash = rs.getString("password_hash");
+        String role = rs.getString("role");
+        String branch = rs.getString("branch");
+        int batch = rs.getInt("batch");
+        String bio = rs.getString("bio");
+
+        Timestamp ts = rs.getTimestamp("created_at");
         LocalDateTime createdAt = (ts != null) ? ts.toLocalDateTime() : null;
 
         if ("TEACHER".equals(role)) {
-            // department defaults to branch — teacher can update it later from profile
             return new Teacher(id, name, email, passHash, branch, batch, bio, createdAt, branch);
         } else {
             return new Student(id, name, email, passHash, branch, batch, bio, createdAt);
