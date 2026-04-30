@@ -1,25 +1,35 @@
 package ui;
 
+import java.util.List;
+import dao.TeamRequestDAO;
 import dao.ProjectDAO;
 import dao.UserDAO;
-import model.Project;
-import model.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import java.util.List;
-import javafx.scene.control.ComboBox;
+import model.Project;
+import model.User;
+import ui.screens.PostProjectScreen;
+import ui.screens.ProjectDetailScreen;
 
 public class HomeFeedScreen {
 
     private Stage stage;
     private User currentUser;
-    private ComboBox<Integer> batchDropdown;
 
     public HomeFeedScreen(Stage stage) {
         this.stage = stage;
@@ -28,38 +38,59 @@ public class HomeFeedScreen {
 
     public void show() {
 
-        // ── Top navbar ───────────────────────────────────────────
-        HBox navbar = new HBox();
-        navbar.setPadding(new Insets(0, 24, 0, 24));
-        navbar.setPrefHeight(56);
-        navbar.setAlignment(Pos.CENTER_LEFT);
-        navbar.setStyle("-fx-background-color: #1a1a2e;");
+// ── Top navbar ───────────────────────────────────────────
+HBox navbar = new HBox();
+navbar.setPadding(new Insets(0, 24, 0, 24));
+navbar.setPrefHeight(56);
+navbar.setAlignment(Pos.CENTER_LEFT);
+navbar.setStyle("-fx-background-color: #1a1a2e;");
 
-        Text logo = new Text("SkillSync");
-        logo.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
-        logo.setFill(Color.WHITE);
+Text logo = new Text("SkillSync");
+logo.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
+logo.setFill(Color.WHITE);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+Region spacer = new Region();
+HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        String userName = currentUser != null ? currentUser.getName() : "Guest";
-        Label userLabel = new Label("👤  " + userName);
-        userLabel.setFont(Font.font("Arial", 13));
-        userLabel.setTextFill(Color.web("#aaaaaa"));
+// ✅ username FIRST
+String userName = currentUser != null ? currentUser.getName() : "Guest";
 
-        Button profileBtn = navButton("My Profile");
-        Button logoutBtn  = navButton("Logout");
+Label userLabel = new Label("👤  " + userName);
+userLabel.setFont(Font.font("Arial", 13));
+userLabel.setTextFill(Color.web("#aaaaaa"));
 
-        profileBtn.setOnAction(e -> new ProfileScreen(stage).show());
-        logoutBtn.setOnAction(e -> {
-            SessionManager.clear();
-            new LoginScreen(stage).show();
-        });
+// ✅ request count
+int requestCount = TeamRequestDAO.getPendingRequestCount(
+        SessionManager.getUser().getId()
+);
 
-        navbar.getChildren().addAll(logo, spacer, userLabel,
-            new Label("   "), profileBtn,
-            new Label("   "), logoutBtn);
+// ✅ buttons
+Button inboxBtn = navButton(
+        "Inbox" + (requestCount > 0 ? " (" + requestCount + ")" : "")
+);
 
+Button profileBtn = navButton("My Profile");
+Button logoutBtn  = navButton("Logout");
+
+// ✅ actions (ONLY ONCE)
+inboxBtn.setOnAction(e -> {
+    stage.setScene(new ui.screens.InboxScreen().getScene());
+});
+
+profileBtn.setOnAction(e -> new ProfileScreen(stage).show());
+
+logoutBtn.setOnAction(e -> {
+    SessionManager.clear();
+    new LoginScreen(stage).show();
+});
+
+// ✅ add to navbar
+navbar.getChildren().addAll(
+        logo, spacer, userLabel,
+        new Label("   "), inboxBtn,
+        new Label("   "), profileBtn,
+        new Label("   "), logoutBtn
+);
         // ── Filter bar ───────────────────────────────────────────
         HBox filterBar = new HBox(12);
         filterBar.setPadding(new Insets(16, 24, 16, 24));
@@ -77,11 +108,11 @@ public class HomeFeedScreen {
         branchFilter.setPromptText("Filter by branch");
         branchFilter.setPrefWidth(160);
         styleField(branchFilter);
-        
-        ComboBox<Integer> batchFilter = new ComboBox<>();
+
+        TextField batchFilter = new TextField();
         batchFilter.setPromptText("Filter by batch");
         batchFilter.setPrefWidth(140);
-        batchFilter.getItems().addAll(UserDAO.getAllBatches());
+        styleField(batchFilter);
 
         Button filterBtn = new Button("Search");
         styleAccentButton(filterBtn);
@@ -93,8 +124,7 @@ public class HomeFeedScreen {
         Button postBtn = new Button("+ Post Project");
         stylePrimaryButton(postBtn);
         postBtn.setOnAction(e -> {
-            // Manas's screen — stub for now
-            showAlert("Post Project screen coming soon!");
+        stage.setScene(new PostProjectScreen(stage).getScene());
         });
 
         filterBar.getChildren().addAll(
@@ -112,15 +142,15 @@ public class HomeFeedScreen {
 
         filterBtn.setOnAction(e -> {
             String branch = branchFilter.getText().trim();
-            Integer batch = batchFilter.getValue();
-            loadProjects(cardsContainer,
+            String batchStr = batchFilter.getText().trim();
+            loadProjects(cardsContainer, 
                 branch.isEmpty() ? null : branch,
-                batch);
+                batchStr.isEmpty() ? null : batchStr);
         });
 
         clearBtn.setOnAction(e -> {
             branchFilter.clear();
-            batchFilter.setValue(null);
+            batchFilter.clear();
             loadProjects(cardsContainer, null, null);
         });
 
@@ -140,15 +170,14 @@ public class HomeFeedScreen {
     }
 
     // ── Load projects into cards ─────────────────────────────────
-    private void loadProjects(VBox container, String branch, Integer batch) {
+    private void loadProjects(VBox container, String branch, String batchStr) {
         container.getChildren().clear();
 
         List<Project> projects;
-        if (branch != null || batch != null) {
-            projects = ProjectDAO.getOpenProjectsByBatchAndBranch(
-                batch == null ? 0 : batch,
-                branch
-            );
+        if (branch != null || batchStr != null) {
+            int batch = 0;
+            try { batch = Integer.parseInt(batchStr); } catch (Exception e) {}
+            projects = ProjectDAO.getOpenProjectsByBatchAndBranch(batch, branch);
         } else {
             projects = ProjectDAO.getAllOpenProjects();
         }
@@ -258,9 +287,8 @@ public class HomeFeedScreen {
         ));
 
         viewBtn.setOnAction(e -> {
-            // Manas's ProjectDetailScreen goes here
-            showAlert("Project Detail screen coming soon — Manas is building this!");
-        });
+    new ProjectDetailScreen(stage, project).show();
+});
 
         card.getChildren().addAll(titleRow, desc, metaRow, viewBtn);
         return card;

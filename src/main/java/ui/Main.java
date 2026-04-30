@@ -21,13 +21,14 @@ public class Main extends Application {
         stage.show();
     }
 
+    // Navigation methods (your system - keep these)
     public static void showDashboard() {
         DashboardScreen screen = new DashboardScreen();
         primaryStage.setScene(screen.getScene());
     }
 
     public static void showPostProject() {
-        PostProjectScreen screen = new PostProjectScreen();
+        PostProjectScreen screen = new PostProjectScreen(primaryStage);
         primaryStage.setScene(screen.getScene());
     }
 
