@@ -10,7 +10,9 @@ public class TestSkillMatcher {
 
         int projectId = 1;
 
-        List<Team> teams = SkillMatcher.getTopTeams(projectId);
+        // ✅ UPDATED CALL (matches new method)
+        List<Team> teams = SkillMatcher.getTopTeams(projectId, 2024, "CSE", 4);
+
         Map<Integer, String> names = SkillMatcher.getAllUserNames();
 
         System.out.println("Top Suggested Teams:\n");
