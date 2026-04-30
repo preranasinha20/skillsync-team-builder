@@ -4,11 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 
 import database.DBConnection;
@@ -16,11 +16,7 @@ import model.Team;
 
 public class SkillMatcher {
 
-    // -------------------------
-    // Get project skills
-    // -------------------------
     public static Set<String> getProjectSkills(int projectId) {
-
         Set<String> skills = new HashSet<>();
 
         String sql = "SELECT skill_name FROM project_skills WHERE project_id = ?";
@@ -42,11 +38,7 @@ public class SkillMatcher {
         return skills;
     }
 
-    // -------------------------
-    // Get student skills
-    // -------------------------
     public static Map<Integer, Set<String>> getStudentSkills() {
-
         Map<Integer, Set<String>> map = new HashMap<>();
 
         String sql = "SELECT user_id, skill_name FROM skills";
@@ -70,18 +62,18 @@ public class SkillMatcher {
         return map;
     }
 
-    // -------------------------
-    // Get all students
-    // -------------------------
-    public static List<Integer> getAllStudents() {
-
+    public static List<Integer> getStudents(int batch, String branch) {
         List<Integer> users = new ArrayList<>();
 
-        String sql = "SELECT id FROM users WHERE role = 'STUDENT'";
+        String sql = "SELECT id FROM users WHERE role='STUDENT' AND batch=? AND LOWER(TRIM(branch))=LOWER(TRIM(?))";
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, batch);
+            stmt.setString(2, branch);
+
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 users.add(rs.getInt("id"));
@@ -94,11 +86,7 @@ public class SkillMatcher {
         return users;
     }
 
-    // -------------------------
-    // Get team size
-    // -------------------------
     public static int getTeamSize(int projectId) {
-
         String sql = "SELECT team_size FROM projects WHERE id = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -118,31 +106,11 @@ public class SkillMatcher {
         return 3;
     }
 
-    // -------------------------
-    // Generate combinations
-    // -------------------------
-    public static void generateTeams(List<Integer> users, int size,
-                                     int index, List<Integer> current,
-                                     List<List<Integer>> result) {
-
-        if (current.size() == size) {
-            result.add(new ArrayList<>(current));
-            return;
-        }
-
-        for (int i = index; i < users.size(); i++) {
-            current.add(users.get(i));
-            generateTeams(users, size, i + 1, current, result);
-            current.remove(current.size() - 1);
-        }
-    }
-
-    // -------------------------
-    // Calculate score
-    // -------------------------
     public static double calculateTeamScore(Set<String> projectSkills,
                                             List<Integer> team,
                                             Map<Integer, Set<String>> studentSkills) {
+
+        if (projectSkills.isEmpty()) return 0;
 
         Set<String> covered = new HashSet<>();
 
@@ -161,11 +129,43 @@ public class SkillMatcher {
         return (double) match / projectSkills.size() * 100;
     }
 
-    // -------------------------
-    // Get all user names (optimized)
-    // -------------------------
-    public static Map<Integer, String> getAllUserNames() {
+    // OPTIMIZED
+    public static List<Team> getTopTeams(int projectId, int batch, String branch, int teamSize) {
 
+        Set<String> projectSkills = getProjectSkills(projectId);
+        Map<Integer, Set<String>> studentSkills = getStudentSkills();
+        List<Integer> users = getStudents(batch, branch);
+
+        List<Team> teams = new ArrayList<>();
+
+        if (users.size() < teamSize) return teams;
+
+        Collections.shuffle(users);
+
+        for (int i = 0; i + teamSize <= users.size(); i += teamSize) {
+
+            List<Integer> team = new ArrayList<>();
+
+            for (int j = 0; j < teamSize; j++) {
+                team.add(users.get(i + j));
+            }
+
+            double score = calculateTeamScore(projectSkills, team, studentSkills);
+
+            teams.add(new Team(projectId, team, score));
+        }
+
+        teams.sort((a, b) -> Double.compare(b.getMatchScore(), a.getMatchScore()));
+
+        return teams.size() > 3 ? teams.subList(0, 3) : teams;
+    }
+
+    // BACKWARD COMPATIBILITY
+    public static List<Team> getTopTeams(int projectId) {
+        return getTopTeams(projectId, 2024, "CSE", getTeamSize(projectId));
+    }
+
+    public static Map<Integer, String> getAllUserNames() {
         Map<Integer, String> names = new HashMap<>();
 
         String sql = "SELECT id, name FROM users";
@@ -185,45 +185,7 @@ public class SkillMatcher {
         return names;
     }
 
-    // -------------------------
-    // MAIN FUNCTION
-    // -------------------------
-    public static List<Team> getTopTeams(int projectId) {
-
-        Set<String> projectSkills = getProjectSkills(projectId);
-        Map<Integer, Set<String>> studentSkills = getStudentSkills();
-        List<Integer> users = getAllStudents();
-
-        int teamSize = getTeamSize(projectId);
-
-        if (users.size() < teamSize) {
-            System.out.println("Not enough students.");
-            return new ArrayList<>();
-        }
-
-        List<List<Integer>> allTeams = new ArrayList<>();
-        generateTeams(users, teamSize, 0, new ArrayList<>(), allTeams);
-
-        PriorityQueue<Team> pq =
-                new PriorityQueue<>((a, b) -> Double.compare(b.getMatchScore(), a.getMatchScore()));
-
-        for (List<Integer> team : allTeams) {
-            double score = calculateTeamScore(projectSkills, team, studentSkills);
-            pq.add(new Team(projectId, team, score));
-        }
-
-        List<Team> topTeams = new ArrayList<>();
-
-        for (int i = 0; i < 3 && !pq.isEmpty(); i++) {
-            topTeams.add(pq.poll());
-        }
-
-        return topTeams;
-    }
-
-    
     public static String getUserName(int userId) {
-
         String sql = "SELECT name FROM users WHERE id = ?";
 
         try (Connection conn = DBConnection.getConnection();
