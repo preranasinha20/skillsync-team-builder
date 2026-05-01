@@ -1,11 +1,10 @@
 package service;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import dao.UserDAO;
 import model.Student;
 import model.Team;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ManualTeamBuilder extends TeamBuilder {
 
@@ -14,30 +13,19 @@ public class ManualTeamBuilder extends TeamBuilder {
     }
 
     @Override
-    public List<Team> buildTeams(int projectId, int teamSize) {
-
+    public List<Team> buildTeams(String activityName, int teamSize, List<String> requiredSkills) {
         List<Student> students = UserDAO.getStudentsByBatchAndBranch(batch, branch);
         List<Team> teams = new ArrayList<>();
-
-        if (students.size() < teamSize) {
-            return teams;
-        }
-
+        if (students.size() < teamSize) return teams;
         int i = 0;
-
         while (i + teamSize <= students.size()) {
-
             List<Integer> members = new ArrayList<>();
-
             for (int j = 0; j < teamSize; j++) {
                 members.add(students.get(i + j).getId());
             }
-
-            teams.add(new Team(projectId, members, 0));
-
+            teams.add(new Team(0, members, 0));
             i += teamSize;
         }
-
         return teams;
     }
 }

@@ -34,6 +34,10 @@ import service.SkillBalancedTeamBuilder;
 import service.SkillMatcher;
 import service.TeamBuilder;
 import ui.SessionManager;
+import java.util.ArrayList;
+import dao.UserDAO;
+import model.Skill;
+import java.util.List;
 
 public class TeamBuilderScreen {
 
@@ -90,9 +94,11 @@ public class TeamBuilderScreen {
         formTitle.setFont(Font.font("Georgia", FontWeight.BOLD, 16));
         formTitle.setFill(Color.web(TeacherHomeScreen.NAVY));
 
-        // Project ID
-        TextField projectIdField = styledField("e.g. 1", 310);
+        // Activity Name
+        TextField activityNameField = styledField("e.g. DBMS Lab Groups", 310);
 
+        // Required Skills
+        TextField requiredSkillsField = styledField("e.g. MySQL, Python, Java", 310);
         // Batch — dropdown from DB
         ComboBox<String> batchBox = new ComboBox<>();
         batchBox.setPromptText("Select Batch");
@@ -140,7 +146,8 @@ public class TeamBuilderScreen {
 
         formCard.getChildren().addAll(
             formTitle,
-            fieldGroup("Project ID *", projectIdField),
+            fieldGroup("Activity Name *", activityNameField),
+            fieldGroup("Required Skills", requiredSkillsField),
             fieldGroup("Batch *", batchBox),
             fieldGroup("Branch *", branchBox),
             fieldGroup("Team Size *", teamSizeField),
@@ -215,10 +222,11 @@ public class TeamBuilderScreen {
         // ── Load dropdowns async ──────────────────────────────────
         Task<Object[]> dropTask = new Task<>() {
             @Override protected Object[] call() {
-                return new Object[]{
-                    EventDAO.getDistinctBatches(),
-                    EventDAO.getDistinctBranches()
-                };
+                List<String> batches = EventDAO.getDistinctBatches();
+                List<String> branches = EventDAO.getDistinctBranches();
+                System.out.println("Batches loaded: " + batches);
+                System.out.println("Branches loaded: " + branches);
+                return new Object[]{batches, branches};
             }
         };
         dropTask.setOnSucceeded(e -> Platform.runLater(() -> {
@@ -227,28 +235,35 @@ public class TeamBuilderScreen {
             batchBox.getItems().addAll(batches);
             branchBox.getItems().addAll(branches);
         }));
+        dropTask.setOnFailed(e -> System.out.println("Dropdown load FAILED: " + dropTask.getException().getMessage()));
         new Thread(dropTask).start();
 
         // ── Generate ──────────────────────────────────────────────
         generateBtn.setOnAction(e -> {
-            String pidStr    = projectIdField.getText().trim();
+            String activityName = activityNameField.getText().trim();
+            String skillsInput  = requiredSkillsField.getText().trim();
             String batchStr  = batchBox.getValue();
             String branchStr = branchBox.getValue();
             String sizeStr   = teamSizeField.getText().trim();
 
-            if (pidStr.isEmpty() || batchStr == null || branchStr == null || sizeStr.isEmpty()) {
+            if (activityName.isEmpty() || batchStr == null || branchStr == null || sizeStr.isEmpty()) {
                 setStatus(formStatus, "⚠  Please fill all required fields.", false);
                 return;
             }
-
-            int projectId, batch, teamSize;
+            int batch, teamSize;
             try {
-                projectId = Integer.parseInt(pidStr);
-                batch     = Integer.parseInt(batchStr);
-                teamSize  = Integer.parseInt(sizeStr);
+                batch    = Integer.parseInt(batchStr);
+                teamSize = Integer.parseInt(sizeStr);
             } catch (Exception ex) {
-                setStatus(formStatus, "⚠  Project ID and Team Size must be numbers.", false);
+                setStatus(formStatus, "⚠  Team Size must be a number.", false);
                 return;
+            }
+            List<String> requiredSkills = new ArrayList<>();
+            if (!skillsInput.isEmpty()) {
+                for (String skill : skillsInput.split(",")) {
+                    String trimmed = skill.trim();
+                    if (!trimmed.isEmpty()) requiredSkills.add(trimmed);
+                }
             }
 
             generateBtn.setDisable(true);
@@ -267,7 +282,7 @@ public class TeamBuilderScreen {
                     TeamBuilder builder = "Manual".equals(strategy)
                         ? new ManualTeamBuilder(finalBatch, branchStr)
                         : new SkillBalancedTeamBuilder(finalBatch, branchStr);
-                    return builder.buildTeams(projectId, teamSize);
+                        return builder.buildTeams(activityName, teamSize, requiredSkills);
                 }
             };
 
@@ -311,8 +326,8 @@ public class TeamBuilderScreen {
 
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Save Team List");
-            String pid = projectIdField.getText().trim();
-            chooser.setInitialFileName("teams_project_" + pid + ".csv");
+            String activityName = activityNameField.getText().trim();
+            chooser.setInitialFileName("teams_" + activityName.replaceAll("\\s+", "_") + ".csv");
             chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("CSV Files", "*.csv")
             );
@@ -321,8 +336,7 @@ public class TeamBuilderScreen {
             if (file == null) return;
 
             try {
-                int projectId = Integer.parseInt(pid);
-                new CSVExporter().exportToFile(currentTeams, projectId, file);
+                new CSVExporter().exportToFile(currentTeams, 0, file);
                 showInfo("✅  Teams exported to: " + file.getName());
             } catch (Exception ex) {
                 showWarn("Export failed: " + ex.getMessage());
@@ -376,15 +390,29 @@ public class TeamBuilderScreen {
         VBox memberList = new VBox(6);
         for (int memberId : team.getMembers()) {
             String name = SkillMatcher.getUserName(memberId);
+            List<String> skills = UserDAO.getSkillsByUser(memberId)
+                .stream()
+                .map(s -> s.getSkillName() + " (" + s.getProficiency().charAt(0) + ")")
+                .collect(java.util.stream.Collectors.toList());
+            String skillStr = skills.isEmpty() ? "No skills listed" : String.join(", ", skills);
+
             HBox row = new HBox(8);
             row.setAlignment(Pos.CENTER_LEFT);
+
             Label dot = new Label("•");
             dot.setTextFill(Color.web(TeacherHomeScreen.CRIMSON));
             dot.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+            VBox nameBox = new VBox(2);
             Label nameLbl = new Label(name);
-            nameLbl.setFont(Font.font("Arial", 13));
+            nameLbl.setFont(Font.font("Arial", FontWeight.BOLD, 13));
             nameLbl.setTextFill(Color.web(TeacherHomeScreen.NAVY));
-            row.getChildren().addAll(dot, nameLbl);
+            Label skillLbl = new Label(skillStr);
+            skillLbl.setFont(Font.font("Arial", 11));
+            skillLbl.setTextFill(Color.web("#8899aa"));
+            nameBox.getChildren().addAll(nameLbl, skillLbl);
+
+            row.getChildren().addAll(dot, nameBox);
             memberList.getChildren().add(row);
         }
 

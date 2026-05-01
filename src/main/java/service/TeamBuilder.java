@@ -1,8 +1,7 @@
 package service;
 
-import java.util.List;
-
 import model.Team;
+import java.util.List;
 
 public abstract class TeamBuilder {
 
@@ -14,5 +13,5 @@ public abstract class TeamBuilder {
         this.branch = branch;
     }
 
-    public abstract List<Team> buildTeams(int projectId, int teamSize);
+    public abstract List<Team> buildTeams(String activityName, int teamSize, List<String> requiredSkills);
 }

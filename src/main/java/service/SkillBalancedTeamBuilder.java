@@ -14,24 +14,33 @@ public class SkillBalancedTeamBuilder extends TeamBuilder {
     }
 
     @Override
-    public List<Team> buildTeams(int projectId, int teamSize) {
+    public List<Team> buildTeams(String activityName, int teamSize, List<String> requiredSkills) {
 
         List<Student> students = UserDAO.getStudentsByBatchAndBranch(batch, branch);
         if (students.isEmpty() || teamSize < 1) return new ArrayList<>();
 
         // Score each student by total skill weight
+        // ONE query to get all skills for all students in this batch/branch
         Map<Integer, Integer> scoreMap = new HashMap<>();
-        for (Student s : students) {
-            List<Skill> skills = UserDAO.getSkillsByUser(s.getId());
-            int score = 0;
-            for (Skill sk : skills) {
-                score += switch (sk.getProficiency()) {
+        String sql = "SELECT s.user_id, s.proficiency FROM skills s " +
+                    "JOIN users u ON s.user_id = u.id " +
+                    "WHERE u.role = 'STUDENT' AND u.batch = ? AND u.branch = ?";
+        try (java.sql.PreparedStatement stmt = database.DBConnection.getConnection().prepareStatement(sql)) {
+            stmt.setInt(1, batch);
+            stmt.setString(2, branch);
+            java.sql.ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int userId = rs.getInt("user_id");
+                String prof = rs.getString("proficiency");
+                int points = switch (prof) {
                     case "EXPERT"       -> 3;
                     case "INTERMEDIATE" -> 2;
                     default             -> 1;
                 };
+                scoreMap.merge(userId, points, Integer::sum);
             }
-            scoreMap.put(s.getId(), score);
+        } catch (Exception e) {
+            System.err.println("[SkillBalancedTeamBuilder] scoring failed: " + e.getMessage());
         }
 
         // Sort by score descending
@@ -57,7 +66,7 @@ public class SkillBalancedTeamBuilder extends TeamBuilder {
             if (!bucket.isEmpty()) {
                 int total = bucket.stream().mapToInt(id -> scoreMap.getOrDefault(id, 0)).sum();
                 double avg = (double) total / bucket.size();
-                teams.add(new Team(projectId, bucket, avg));
+                teams.add(new Team(0, bucket, avg));
             }
         }
 
