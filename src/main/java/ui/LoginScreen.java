@@ -37,6 +37,122 @@ public class LoginScreen {
         stage.show();
     }
 
+    private void showForgotPasswordDialog(Stage stage) {
+        Stage dialog = new Stage();
+        dialog.setTitle("Reset Password");
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+    
+        VBox layout = new VBox(14);
+        layout.setPadding(new Insets(30));
+        layout.setStyle("-fx-background-color: #f0f2f5;");
+        layout.setPrefWidth(380);
+    
+        Text title = new Text("Reset Password");
+        title.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
+        title.setFill(Color.web("#1a1a2e"));
+    
+        Text subtitle = new Text("Enter your registered email to reset your password.");
+        subtitle.setFont(Font.font("Arial", 12));
+        subtitle.setFill(Color.web("#6c757d"));
+        subtitle.setWrappingWidth(320);
+    
+        TextField emailField = new TextField();
+        emailField.setPromptText("Registered email");
+        emailField.setPrefHeight(42);
+        emailField.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #dee2e6;" +
+            "-fx-border-radius: 6;" +
+            "-fx-background-radius: 6;" +
+            "-fx-padding: 8 12;" +
+            "-fx-font-size: 13px;"
+        );
+    
+        PasswordField newPassField = new PasswordField();
+        newPassField.setPromptText("New password");
+        newPassField.setPrefHeight(42);
+        newPassField.setStyle(emailField.getStyle());
+    
+        PasswordField confirmPassField = new PasswordField();
+        confirmPassField.setPromptText("Confirm new password");
+        confirmPassField.setPrefHeight(42);
+        confirmPassField.setStyle(emailField.getStyle());
+    
+        Label messageLabel = new Label("");
+        messageLabel.setFont(Font.font("Arial", 12));
+        messageLabel.setWrapText(true);
+    
+        Button resetBtn = new Button("Reset Password");
+        resetBtn.setPrefWidth(320);
+        resetBtn.setPrefHeight(42);
+        resetBtn.setStyle(
+            "-fx-background-color: #e94560;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;"
+        );
+    
+        resetBtn.setOnAction(e -> {
+            String email      = emailField.getText().trim();
+            String newPass    = newPassField.getText();
+            String confirmPass = confirmPassField.getText();
+    
+            if (email.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
+                messageLabel.setTextFill(Color.web("#e94560"));
+                messageLabel.setText("Please fill in all fields.");
+                return;
+            }
+    
+            if (!newPass.equals(confirmPass)) {
+                messageLabel.setTextFill(Color.web("#e94560"));
+                messageLabel.setText("Passwords do not match.");
+                return;
+            }
+    
+            if (newPass.length() < 6) {
+                messageLabel.setTextFill(Color.web("#e94560"));
+                messageLabel.setText("Password must be at least 6 characters.");
+                return;
+            }
+    
+            // Check if email exists
+            if (!UserDAO.emailExists(email)) {
+                messageLabel.setTextFill(Color.web("#e94560"));
+                messageLabel.setText("No account found with this email.");
+                return;
+            }
+    
+            // Update password
+            boolean updated = UserDAO.updatePassword(email, PasswordUtil.hash(newPass));
+    
+            if (updated) {
+                messageLabel.setTextFill(Color.web("#2ecc71"));
+                messageLabel.setText("✅ Password reset successfully! You can now log in.");
+                javafx.animation.PauseTransition pause =
+                    new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+                pause.setOnFinished(ev -> dialog.close());
+                pause.play();
+            } else {
+                messageLabel.setTextFill(Color.web("#e94560"));
+                messageLabel.setText("Reset failed. Please try again.");
+            }
+        });
+    
+        layout.getChildren().addAll(
+            title, subtitle,
+            new Label(""),
+            fieldLabel("Email"), emailField,
+            fieldLabel("New Password"), newPassField,
+            fieldLabel("Confirm Password"), confirmPassField,
+            messageLabel,
+            resetBtn
+        );
+    
+        dialog.setScene(new Scene(layout));
+        dialog.show();
+    }
     /**
      * Returns the login Scene.
      * Used by TeacherHomeScreen logout button (which only has a Stage, no LoginScreen instance).
@@ -125,6 +241,11 @@ public class LoginScreen {
         registerLink.setTextFill(Color.web("#1a1a2e"));
         registerLink.setOnAction(e -> new RegisterScreen(stage).show());
 
+        Hyperlink forgotLink = new Hyperlink("Forgot password?");
+        forgotLink.setFont(Font.font("Arial", 12));
+        forgotLink.setTextFill(Color.web("#6c757d"));
+        forgotLink.setOnAction(e -> showForgotPasswordDialog(stage));
+
         rightPanel.getChildren().addAll(
             title, subtitle,
             new Label(""),
@@ -132,7 +253,8 @@ public class LoginScreen {
             fieldLabel("Password"), passwordField,
             errorLabel,
             loginBtn,
-            registerLink
+            registerLink,
+            forgotLink
         );
 
         HBox root = new HBox(leftPanel, rightPanel);

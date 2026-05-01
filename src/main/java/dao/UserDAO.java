@@ -267,4 +267,15 @@ public class UserDAO {
     
         return batches;
     }
+    public static boolean updatePassword(String email, String newPasswordHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE email = ?";
+        try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, newPasswordHash);
+            stmt.setString(2, email);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("[UserDAO] updatePassword failed: " + e.getMessage());
+        }
+        return false;
+    }
 }
