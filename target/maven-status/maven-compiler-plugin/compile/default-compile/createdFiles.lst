@@ -24,6 +24,7 @@ TestProjectDAO.class
 service/TeamBuilder.class
 ui/screens/ViewStudentsScreen$1.class
 database/TeamSchema.class
+ui/screens/ProjectDetailScreen$1.class
 dao/ProjectDAO.class
 service/Exportable.class
 model/Skill.class

@@ -18,6 +18,9 @@ import javafx.scene.text.Text;
 import model.Project;
 import ui.Main;
 import ui.SessionManager;
+import dao.EventDAO;
+import model.Event;
+import java.util.List;
 
 public class DashboardScreen {
 
@@ -84,7 +87,55 @@ public class DashboardScreen {
         joined.setContent(new Label("🤝 Joined projects coming soon"));
         completed.setContent(new Label("✅ Completed projects coming soon"));
 
-        tabPane.getTabs().addAll(posted, joined, completed);
+        // Events tab
+        Tab eventsTab = new Tab("📅 Events");
+        eventsTab.setClosable(false);
+
+        VBox eventsBox = new VBox(10);
+        eventsBox.setPadding(new Insets(10));
+
+        int userBatch = SessionManager.getUser().getBatch();
+        String userBranch = SessionManager.getUser().getBranch();
+
+        List<model.Event> events = dao.EventDAO.getEventsForStudent(userBatch, userBranch);
+
+        if (events.isEmpty()) {
+            Label empty = new Label("📌 No events posted for your batch yet");
+            empty.setStyle("-fx-text-fill: #6c757d;");
+            eventsBox.getChildren().add(empty);
+        } else {
+            for (model.Event ev : events) {
+                VBox eventCard = new VBox(6);
+                eventCard.setPadding(new Insets(14));
+                eventCard.setStyle(
+                    "-fx-background-color: white;" +
+                    "-fx-background-radius: 8;" +
+                    "-fx-border-color: #e94560;" +
+                    "-fx-border-radius: 8;" +
+                    "-fx-border-width: 0 0 0 3;"
+                );
+                Label eventTitle = new Label("🎯 " + ev.getTitle());
+                eventTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a1a2e;");
+                Label eventDesc = new Label(ev.getDescription() != null ? ev.getDescription() : "");
+                eventDesc.setWrapText(true);
+                eventDesc.setStyle("-fx-text-fill: #555555; -fx-font-size: 12px;");
+                Label eventMeta = new Label(
+                    "Batch: " + ev.getTargetBatch() +
+                    " | Branch: " + (ev.getTargetBranch() != null ? ev.getTargetBranch() : "All") +
+                    " | Skills: " + (ev.getRequiredSkills() != null ? ev.getRequiredSkills() : "Any") +
+                    (ev.getEventDate() != null ? " | Date: " + ev.getEventDate() : "")
+                );
+                eventMeta.setStyle("-fx-text-fill: #6c757d; -fx-font-size: 11px;");
+                eventCard.getChildren().addAll(eventTitle, eventDesc, eventMeta);
+                eventsBox.getChildren().add(eventCard);
+            }
+        }
+
+        ScrollPane eventsScroll = new ScrollPane(eventsBox);
+        eventsScroll.setFitToWidth(true);
+        eventsTab.setContent(eventsScroll);
+
+        tabPane.getTabs().addAll(posted, joined, completed, eventsTab);
 
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
