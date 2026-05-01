@@ -1,6 +1,10 @@
 package dao;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -199,6 +203,23 @@ public class UserDAO {
         }
 
         return false;
+    }
+
+    public static boolean deleteSkill(int userId, String skillName) {
+    String sql = "DELETE FROM skills WHERE user_id = ? AND skill_name = ?";
+
+    try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+
+        stmt.setInt(1, userId);
+        stmt.setString(2, skillName);
+
+        return stmt.executeUpdate() > 0;
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    return false;
     }
 
     public static List<Skill> getSkillsByUser(int userId) {
