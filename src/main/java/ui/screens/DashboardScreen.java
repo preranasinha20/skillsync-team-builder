@@ -21,6 +21,8 @@ import ui.SessionManager;
 import dao.EventDAO;
 import model.Event;
 import java.util.List;
+import java.util.Map;
+import javafx.stage.Stage;
 
 public class DashboardScreen {
 
@@ -47,7 +49,15 @@ public class DashboardScreen {
         postBtn.setOnAction(e -> Main.showPostProject());
         inboxBtn.setOnAction(e -> Main.showInbox());
 
-        nav.getChildren().addAll(postBtn, inboxBtn);
+        Button backBtn = new Button("← Home");
+        backBtn.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; -fx-background-radius: 6;");
+        backBtn.setOnAction(e -> {
+            Stage stage = (Stage) root.getScene().getWindow();
+            new ui.HomeFeedScreen(stage).show();
+        });
+        nav.getChildren().addAll(backBtn, postBtn, inboxBtn);
+
+        
 
         // 🔹 TABS
         TabPane tabPane = new TabPane();
@@ -83,12 +93,90 @@ public class DashboardScreen {
 
         posted.setContent(scroll);
 
-        // 🔹 placeholders (can upgrade later)
-        joined.setContent(new Label("🤝 Joined projects coming soon"));
-        completed.setContent(new Label("✅ Completed projects coming soon"));
+        // ── Joined tab ───────────────────────────────────────────
+        VBox joinedBox = new VBox(10);
+        joinedBox.setPadding(new Insets(10));
+        Label joinedLoading = new Label("Loading...");
+        joinedLoading.setStyle("-fx-text-fill: #6c757d;");
+        joinedBox.getChildren().add(joinedLoading);
+
+        javafx.concurrent.Task<List<Project>> joinedTask = new javafx.concurrent.Task<>() {
+            @Override protected List<Project> call() {
+                // Get all projects where user is a team member but not the owner
+                String sql = "SELECT p.* FROM projects p " +
+                            "JOIN team_members tm ON p.id = tm.project_id " +
+                            "WHERE tm.user_id = ? AND p.owner_id != ?";
+                List<Project> result = new java.util.ArrayList<>();
+                try (java.sql.PreparedStatement stmt =
+                        database.DBConnection.getConnection().prepareStatement(sql)) {
+                    stmt.setInt(1, userId);
+                    stmt.setInt(2, userId);
+                    java.sql.ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) result.add(dao.ProjectDAO.getProjectById(rs.getInt("id")));
+                } catch (Exception e) {
+                    System.err.println("Joined projects load failed: " + e.getMessage());
+                }
+                return result;
+            }
+        };
+        joinedTask.setOnSucceeded(ev -> javafx.application.Platform.runLater(() -> {
+            joinedBox.getChildren().clear();
+            List<Project> joinedProjects = joinedTask.getValue();
+            if (joinedProjects.isEmpty()) {
+                Label empty = new Label("🤝 You haven't joined any projects yet");
+                empty.setStyle("-fx-text-fill: #6c757d;");
+                joinedBox.getChildren().add(empty);
+            } else {
+                for (Project p : joinedProjects) joinedBox.getChildren().add(buildCard(p));
+            }
+        }));
+        new Thread(joinedTask).start();
+        ScrollPane joinedScroll = new ScrollPane(joinedBox);
+        joinedScroll.setFitToWidth(true);
+        joined.setContent(joinedScroll);
+
+        // ── Completed tab ─────────────────────────────────────────
+        VBox completedBox = new VBox(10);
+        completedBox.setPadding(new Insets(10));
+        Label completedLoading = new Label("Loading...");
+        completedLoading.setStyle("-fx-text-fill: #6c757d;");
+        completedBox.getChildren().add(completedLoading);
+
+        javafx.concurrent.Task<List<Project>> completedTask = new javafx.concurrent.Task<>() {
+            @Override protected List<Project> call() {
+                String sql = "SELECT p.* FROM projects p " +
+                            "JOIN team_members tm ON p.id = tm.project_id " +
+                            "WHERE tm.user_id = ? AND p.status = 'COMPLETED'";
+                List<Project> result = new java.util.ArrayList<>();
+                try (java.sql.PreparedStatement stmt =
+                        database.DBConnection.getConnection().prepareStatement(sql)) {
+                    stmt.setInt(1, userId);
+                    java.sql.ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) result.add(dao.ProjectDAO.getProjectById(rs.getInt("id")));
+                } catch (Exception e) {
+                    System.err.println("Completed projects load failed: " + e.getMessage());
+                }
+                return result;
+            }
+        };
+        completedTask.setOnSucceeded(ev -> javafx.application.Platform.runLater(() -> {
+            completedBox.getChildren().clear();
+            List<Project> completedProjects = completedTask.getValue();
+            if (completedProjects.isEmpty()) {
+                Label empty = new Label("✅ No completed projects yet");
+                empty.setStyle("-fx-text-fill: #6c757d;");
+                completedBox.getChildren().add(empty);
+            } else {
+                for (Project p : completedProjects) completedBox.getChildren().add(buildCard(p));
+            }
+        }));
+        new Thread(completedTask).start();
+        ScrollPane completedScroll = new ScrollPane(completedBox);
+        completedScroll.setFitToWidth(true);
+        completed.setContent(completedScroll);
 
         // Events tab
-        Tab eventsTab = new Tab("📅 Events");
+        Tab eventsTab = new Tab("Events");
         eventsTab.setClosable(false);
 
         VBox eventsBox = new VBox(10);
@@ -98,7 +186,8 @@ public class DashboardScreen {
         String userBranch = SessionManager.getUser().getBranch();
 
         List<model.Event> events = dao.EventDAO.getEventsForStudent(userBatch, userBranch);
-
+        System.out.println("Loading events for batch: " + userBatch + " branch: " + userBranch);
+        
         if (events.isEmpty()) {
             Label empty = new Label("📌 No events posted for your batch yet");
             empty.setStyle("-fx-text-fill: #6c757d;");

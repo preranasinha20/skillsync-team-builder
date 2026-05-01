@@ -13,6 +13,24 @@ public class SkillBalancedTeamBuilder extends TeamBuilder {
         super(batch, branch);
     }
 
+        public SkillBalancedTeamBuilder(int batch, String branch, 
+            List<Student> students, 
+            Map<Integer, Integer> scoreMap) {
+    super(batch, branch);
+    this.preloadedStudents = students;
+    this.preloadedScores = scoreMap;
+    }
+
+private List<Student> preloadedStudents = null;
+private Map<Integer, Integer> preloadedScores = null;
+
+List<Student> students = preloadedStudents != null 
+    ? preloadedStudents 
+    : UserDAO.getStudentsByBatchAndBranch(batch, branch);
+Map<Integer, Integer> scoreMap = preloadedScores != null 
+    ? preloadedScores 
+    : new HashMap<>(); // scoring block runs if not preloaded
+   
     @Override
     public List<Team> buildTeams(String activityName, int teamSize, List<String> requiredSkills) {
 

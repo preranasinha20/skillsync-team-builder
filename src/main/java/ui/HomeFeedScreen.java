@@ -25,6 +25,8 @@ import model.Project;
 import model.User;
 import ui.screens.PostProjectScreen;
 import ui.screens.ProjectDetailScreen;
+import java.util.Map;
+import ui.screens.DashboardScreen;
 
 public class HomeFeedScreen {
 
@@ -59,16 +61,19 @@ Label userLabel = new Label("👤  " + userName);
 userLabel.setFont(Font.font("Arial", 13));
 userLabel.setTextFill(Color.web("#aaaaaa"));
 
-// ✅ request count
-int requestCount = TeamRequestDAO.getPendingRequestCount(
-        SessionManager.getUser().getId()
-);
+// Load request count in background — no FX thread freeze
+Button inboxBtn = navButton("Inbox");
 
-// ✅ buttons
-Button inboxBtn = navButton(
-        "Inbox" + (requestCount > 0 ? " (" + requestCount + ")" : "")
-);
-
+javafx.concurrent.Task<Integer> countTask = new javafx.concurrent.Task<>() {
+    @Override protected Integer call() {
+        return TeamRequestDAO.getPendingRequestCount(SessionManager.getUser().getId());
+    }
+};
+countTask.setOnSucceeded(ev -> javafx.application.Platform.runLater(() -> {
+    int count = countTask.getValue();
+    if (count > 0) inboxBtn.setText("Inbox (" + count + ")");
+}));
+new Thread(countTask).start();
 Button profileBtn = navButton("My Profile");
 Button logoutBtn  = navButton("Logout");
 
@@ -84,13 +89,20 @@ logoutBtn.setOnAction(e -> {
     new LoginScreen(stage).show();
 });
 
+Button dashboardBtn = navButton("My Projects");
+dashboardBtn.setOnAction(e -> {
+    Scene dashScene = new DashboardScreen().getScene();
+    stage.setScene(dashScene);
+});
+
 // ✅ add to navbar
 navbar.getChildren().addAll(
         logo, spacer, userLabel,
-        new Label("   "), inboxBtn,
-        new Label("   "), profileBtn,
-        new Label("   "), logoutBtn
-);
+        new Label("   "), dashboardBtn,
+    new Label("   "), inboxBtn,
+    new Label("   "), profileBtn,
+    new Label("   "), logoutBtn);
+;
         // ── Filter bar ───────────────────────────────────────────
         HBox filterBar = new HBox(12);
         filterBar.setPadding(new Insets(16, 24, 16, 24));
@@ -172,32 +184,58 @@ navbar.getChildren().addAll(
     // ── Load projects into cards ─────────────────────────────────
     private void loadProjects(VBox container, String branch, String batchStr) {
         container.getChildren().clear();
-
-        List<Project> projects;
-        if (branch != null || batchStr != null) {
-            int batch = 0;
-            try { batch = Integer.parseInt(batchStr); } catch (Exception e) {}
-            projects = ProjectDAO.getOpenProjectsByBatchAndBranch(batch, branch);
-        } else {
-            projects = ProjectDAO.getAllOpenProjects();
-        }
-
-        if (projects.isEmpty()) {
-            Label empty = new Label("No open projects found. Be the first to post one!");
-            empty.setFont(Font.font("Arial", 14));
-            empty.setTextFill(Color.web("#6c757d"));
-            empty.setPadding(new Insets(40));
-            container.getChildren().add(empty);
-            return;
-        }
-
-        for (Project project : projects) {
-            container.getChildren().add(buildProjectCard(project));
-        }
+    
+        Label loading = new Label("⏳ Loading projects...");
+        loading.setFont(Font.font("Arial", 13));
+        loading.setTextFill(Color.web("#6c757d"));
+        container.getChildren().add(loading);
+    
+        javafx.concurrent.Task<Object[]> task = new javafx.concurrent.Task<>() {
+            @Override protected Object[] call() {
+                List<Project> projects;
+                if (branch != null || batchStr != null) {
+                    int batch = 0;
+                    try { batch = Integer.parseInt(batchStr); } catch (Exception e) {}
+                    projects = ProjectDAO.getOpenProjectsByBatchAndBranch(batch, branch);
+                } else {
+                    projects = ProjectDAO.getAllOpenProjects();
+                }
+                // Bulk load owner names — ONE query
+                Map<Integer, String> ownerNames = ProjectDAO.getOwnerNamesForProjects(projects);
+                return new Object[]{projects, ownerNames};
+            }
+        };
+    
+        task.setOnSucceeded(ev -> javafx.application.Platform.runLater(() -> {
+            container.getChildren().clear();
+            @SuppressWarnings("unchecked")
+            List<Project> projects = (List<Project>) task.getValue()[0];
+            @SuppressWarnings("unchecked")
+            Map<Integer, String> ownerNames = (Map<Integer, String>) task.getValue()[1];
+    
+            if (projects.isEmpty()) {
+                Label empty = new Label("No open projects found. Be the first to post one!");
+                empty.setFont(Font.font("Arial", 14));
+                empty.setTextFill(Color.web("#6c757d"));
+                empty.setPadding(new Insets(40));
+                container.getChildren().add(empty);
+                return;
+            }
+            for (Project project : projects) {
+                container.getChildren().add(buildProjectCard(project, ownerNames));
+            }
+        }));
+    
+        task.setOnFailed(ev -> javafx.application.Platform.runLater(() -> {
+            container.getChildren().clear();
+            container.getChildren().add(new Label("Failed to load projects."));
+        }));
+    
+        new Thread(task).start();
     }
 
     // ── Project card ─────────────────────────────────────────────
-    private VBox buildProjectCard(Project project) {
+    private VBox buildProjectCard(Project project, Map<Integer, String> ownerNames) {
         VBox card = new VBox(10);
         card.setPadding(new Insets(20));
         card.setStyle(
@@ -247,8 +285,7 @@ navbar.getChildren().addAll(
         Label batchLabel  = metaTag(String.valueOf(project.getBatch()));
 
         // Posted by
-        User owner = UserDAO.getUserById(project.getOwnerId());
-        String ownerName = owner != null ? owner.getName() : "Unknown";
+        String ownerName = ownerNames.getOrDefault(project.getOwnerId(), "Unknown");
         Label ownerLabel = metaTag("👤 " + ownerName);
 
         metaRow.getChildren().addAll(branchLabel, batchLabel, ownerLabel);

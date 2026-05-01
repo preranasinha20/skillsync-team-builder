@@ -13,7 +13,7 @@ public class TestSkillMatcher {
         // ✅ UPDATED CALL (matches new method)
         List<Team> teams = SkillMatcher.getTopTeams(projectId, 2024, "CSE", 4);
 
-        Map<Integer, String> names = SkillMatcher.getAllUserNames();
+        Map<Integer, String> names = SkillMatcher.getAllUserNamesForTeams(teams);
 
         System.out.println("Top Suggested Teams:\n");
 

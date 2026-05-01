@@ -1,6 +1,7 @@
 TestTeamRequestDAO.class
 ui/HomeFeedScreen.class
 model/Teacher.class
+ui/HomeFeedScreen$1.class
 ui/screens/ViewStudentsScreen$3.class
 ui/RegisterScreen.class
 ui/screens/TeamBuilderScreen$1.class
@@ -24,6 +25,7 @@ TestProjectDAO.class
 service/TeamBuilder.class
 ui/screens/ViewStudentsScreen$1.class
 database/TeamSchema.class
+ui/screens/DashboardScreen$1.class
 ui/screens/ProjectDetailScreen$1.class
 dao/ProjectDAO.class
 service/Exportable.class
@@ -42,10 +44,13 @@ ui/screens/TeacherHomeScreen.class
 dao/TeamRequestDAO.class
 ui/screens/TeacherHomeScreen$1.class
 TestUserDAO.class
+ui/HomeFeedScreen$2.class
 dao/EventDAO.class
 ui/screens/ViewStudentsScreen$2.class
 ui/screens/ViewStudentsScreen.class
 ui/screens/TeamBuilderScreen$2.class
+service/TeamBuilder$1.class
+ui/screens/DashboardScreen$2.class
 ui/screens/ExportScreen$2.class
 ui/screens/PostProjectScreen.class
 ui/screens/ViewStudentsScreen$6.class

@@ -104,7 +104,8 @@ public class ProjectDetailScreen {
                     project.getId(),
                     project.getBatch(),
                     project.getBranch(),
-                    project.getTeamSize()
+                    project.getTeamSize() - 1,  // subtract 1 for the owner
+                    project.getOwnerId()         // exclude owner from suggestions
                 );
             }
         };

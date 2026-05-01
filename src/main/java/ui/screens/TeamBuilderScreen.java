@@ -38,10 +38,16 @@ import java.util.ArrayList;
 import dao.UserDAO;
 import model.Skill;
 import java.util.List;
+import model.Student;
+import java.util.Map;
+import java.util.HashMap; 
+import service.CSVExporter;
 
 public class TeamBuilderScreen {
 
     private List<Team> currentTeams;
+    private List<Student> cachedStudents = new ArrayList<>();
+    private Map<Integer, Integer> studentScoreCache = new HashMap<>();
 
     public Scene getScene() {
 
@@ -280,10 +286,12 @@ public class TeamBuilderScreen {
             Task<List<Team>> genTask = new Task<>() {
                 @Override protected List<Team> call() {
                     TeamBuilder builder = "Manual".equals(strategy)
-                        ? new ManualTeamBuilder(finalBatch, branchStr)
-                        : new SkillBalancedTeamBuilder(finalBatch, branchStr);
-                        return builder.buildTeams(activityName, teamSize, requiredSkills);
+                    ? new ManualTeamBuilder(finalBatch, branchStr)
+                    : new SkillBalancedTeamBuilder(finalBatch, branchStr, 
+                                                    cachedStudents, studentScoreCache);
+                                                    return builder.buildTeams(activityName, teamSize, requiredSkills);
                 }
+                
             };
 
             genTask.setOnSucceeded(ev -> Platform.runLater(() -> {
@@ -291,22 +299,22 @@ public class TeamBuilderScreen {
                 genSpinner.setVisible(false);
                 List<Team> teams = genTask.getValue();
                 resultCards.getChildren().clear();
-
+            
                 if (teams.isEmpty()) {
-                    setStatus(formStatus,
-                        "⚠  No teams generated. Check project ID, batch/branch, and team size.", false);
-                    resultCards.getChildren().add(
-                        placeholder("No teams found. Try a different batch or team size.")
-                    );
+                    setStatus(formStatus, "⚠  No teams generated.", false);
                     return;
                 }
-
+            
+                // TWO bulk queries instead of N queries
+                Map<Integer, String> nameMap  = SkillMatcher.getAllUserNamesForTeams(teams);
+                Map<Integer, String> skillMap = SkillMatcher.getAllSkillStringsForTeams(teams);
+            
                 currentTeams = teams;
                 exportBtn.setDisable(false);
                 setStatus(formStatus, "✅  " + teams.size() + " team(s) generated.", true);
-
+            
                 for (int i = 0; i < teams.size(); i++) {
-                    resultCards.getChildren().add(buildTeamCard(teams.get(i), i + 1));
+                    resultCards.getChildren().add(buildTeamCard(teams.get(i), i + 1, nameMap, skillMap));
                 }
             }));
 
@@ -347,13 +355,15 @@ public class TeamBuilderScreen {
     }
 
     // ── Team result card ──────────────────────────────────────────
-    private VBox buildTeamCard(Team team, int teamNum) {
+        private VBox buildTeamCard(Team team, int teamNum, 
+                Map<Integer, String> nameMap,
+                Map<Integer, String> skillMap) {
         VBox card = new VBox(10);
         card.setPadding(new Insets(16, 20, 16, 20));
         card.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 10;" +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);"
+        "-fx-background-color: white;" +
+        "-fx-background-radius: 10;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);"
         );
 
         HBox header = new HBox(10);
@@ -361,64 +371,58 @@ public class TeamBuilderScreen {
 
         Label numBadge = new Label("Team " + teamNum);
         numBadge.setStyle(
-            "-fx-background-color: " + TeacherHomeScreen.NAVY + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 11px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-padding: 3 10;" +
-            "-fx-background-radius: 99;"
+        "-fx-background-color: " + TeacherHomeScreen.NAVY + ";" +
+        "-fx-text-fill: white;" +
+        "-fx-font-size: 11px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-padding: 3 10;" +
+        "-fx-background-radius: 99;"
         );
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
 
-        String scoreStr = String.format("%.0f%% match", team.getMatchScore());
-        Label scoreBadge = new Label(scoreStr);
+        Label scoreBadge = new Label(String.format("%.0f%% match", team.getMatchScore()));
         scoreBadge.setStyle(
-            "-fx-background-color: #fff0f3;" +
-            "-fx-text-fill: " + TeacherHomeScreen.CRIMSON + ";" +
-            "-fx-font-size: 11px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-padding: 3 10;" +
-            "-fx-background-radius: 99;"
+        "-fx-background-color: #fff0f3;" +
+        "-fx-text-fill: " + TeacherHomeScreen.CRIMSON + ";" +
+        "-fx-font-size: 11px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-padding: 3 10;" +
+        "-fx-background-radius: 99;"
         );
         header.getChildren().addAll(numBadge, sp, scoreBadge);
 
         Separator sep = new Separator();
-        sep.setStyle("-fx-background-color: #f0f2f5;");
 
         VBox memberList = new VBox(6);
         for (int memberId : team.getMembers()) {
-            String name = SkillMatcher.getUserName(memberId);
-            List<String> skills = UserDAO.getSkillsByUser(memberId)
-                .stream()
-                .map(s -> s.getSkillName() + " (" + s.getProficiency().charAt(0) + ")")
-                .collect(java.util.stream.Collectors.toList());
-            String skillStr = skills.isEmpty() ? "No skills listed" : String.join(", ", skills);
+        String name     = nameMap.getOrDefault(memberId, "Unknown");
+        String skillStr = skillMap.getOrDefault(memberId, "No skills listed");
 
-            HBox row = new HBox(8);
-            row.setAlignment(Pos.CENTER_LEFT);
+        HBox row = new HBox(8);
+        row.setAlignment(Pos.CENTER_LEFT);
 
-            Label dot = new Label("•");
-            dot.setTextFill(Color.web(TeacherHomeScreen.CRIMSON));
-            dot.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        Label dot = new Label("•");
+        dot.setTextFill(Color.web(TeacherHomeScreen.CRIMSON));
+        dot.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-            VBox nameBox = new VBox(2);
-            Label nameLbl = new Label(name);
-            nameLbl.setFont(Font.font("Arial", FontWeight.BOLD, 13));
-            nameLbl.setTextFill(Color.web(TeacherHomeScreen.NAVY));
-            Label skillLbl = new Label(skillStr);
-            skillLbl.setFont(Font.font("Arial", 11));
-            skillLbl.setTextFill(Color.web("#8899aa"));
-            nameBox.getChildren().addAll(nameLbl, skillLbl);
+        VBox nameBox = new VBox(2);
+        Label nameLbl = new Label(name);
+        nameLbl.setFont(Font.font("Arial", FontWeight.BOLD, 13));
+        nameLbl.setTextFill(Color.web(TeacherHomeScreen.NAVY));
+        Label skillLbl = new Label(skillStr);
+        skillLbl.setFont(Font.font("Arial", 11));
+        skillLbl.setTextFill(Color.web("#8899aa"));
+        nameBox.getChildren().addAll(nameLbl, skillLbl);
 
-            row.getChildren().addAll(dot, nameBox);
-            memberList.getChildren().add(row);
+        row.getChildren().addAll(dot, nameBox);
+        memberList.getChildren().add(row);
         }
 
         card.getChildren().addAll(header, sep, memberList);
         return card;
-    }
+        }
 
     // ── UI helpers ────────────────────────────────────────────────
     private VBox fieldGroup(String label, javafx.scene.Node field) {

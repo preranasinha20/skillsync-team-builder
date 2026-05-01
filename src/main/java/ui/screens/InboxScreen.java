@@ -25,6 +25,21 @@ public class InboxScreen {
         Label title = new Label("📥 Inbox");
         title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1a1a2e;");
 
+        Button backBtn = new Button("← Back to Home");
+        backBtn.setStyle(
+            "-fx-background-color: #1a1a2e;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 6;" +
+            "-fx-padding: 6 14;" +
+            "-fx-cursor: hand;"
+        );
+        backBtn.setOnAction(e -> {
+            javafx.stage.Stage stage = ui.Main.getStage();
+            new ui.HomeFeedScreen(stage).show();
+        });
+
+root.getChildren().addAll(title, backBtn);
+
         VBox list = new VBox(10);
 
         int userId = SessionManager.getUser().getId();
@@ -67,7 +82,7 @@ public class InboxScreen {
         ScrollPane scroll = new ScrollPane(list);
         scroll.setFitToWidth(true);
 
-        root.getChildren().addAll(title, scroll);
+        root.getChildren().add(scroll);
 
         return new Scene(root, 700, 500);
     }

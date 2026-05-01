@@ -6,8 +6,27 @@ import java.util.List;
 import database.DBConnection;
 import model.Project;
 import model.ProjectStatus;
+import java.util.Map;
+import java.util.HashMap;
 
 public class ProjectDAO {
+
+    public static Map<Integer, String> getOwnerNamesForProjects(List<Project> projects) {
+        Map<Integer, String> names = new HashMap<>();
+        if (projects.isEmpty()) return names;
+        String placeholders = projects.stream()
+            .map(p -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = "SELECT id, name FROM users WHERE id IN (" + placeholders + ")";
+        try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+            int i = 1;
+            for (Project p : projects) stmt.setInt(i++, p.getOwnerId());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) names.put(rs.getInt("id"), rs.getString("name"));
+        } catch (Exception e) {
+            System.err.println("[ProjectDAO] getOwnerNamesForProjects failed: " + e.getMessage());
+        }
+        return names;
+    }
 
     // ── CREATE PROJECT ───────────────────────────────────────────
     public static int createProject(Project project) {

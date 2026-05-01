@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.stream.Collectors;
 import database.DBConnection;
 import model.Team;
 
@@ -130,60 +130,56 @@ public class SkillMatcher {
     }
 
     // OPTIMIZED
-    public static List<Team> getTopTeams(int projectId, int batch, String branch, int teamSize) {
+    public static List<Team> getTopTeams(int projectId, int batch, String branch,
+        int teamSize, int excludeUserId) {
+Set<String> projectSkills = getProjectSkills(projectId);
+Map<Integer, Set<String>> studentSkills = getStudentSkills();
+List<Integer> users = getStudents(batch, branch);
 
-        Set<String> projectSkills = getProjectSkills(projectId);
-        Map<Integer, Set<String>> studentSkills = getStudentSkills();
-        List<Integer> users = getStudents(batch, branch);
+// Remove the project owner — they're already on the team
+users.removeIf(id -> id == excludeUserId);
 
-        List<Team> teams = new ArrayList<>();
+// teamSize already has owner subtracted when called from ProjectDetailScreen
+if (users.size() < teamSize || teamSize < 1) return new ArrayList<>();
 
-        if (users.size() < teamSize) return teams;
+users.sort((a, b) -> {
+int scoreA = studentSkills.getOrDefault(a, new HashSet<>()).size();
+int scoreB = studentSkills.getOrDefault(b, new HashSet<>()).size();
+return Integer.compare(scoreB, scoreA);
+});
 
-        Collections.shuffle(users);
+// Snake draft into 3 teams
+List<List<Integer>> buckets = new ArrayList<>();
+for (int i = 0; i < 3; i++) buckets.add(new ArrayList<>());
 
-        for (int i = 0; i + teamSize <= users.size(); i += teamSize) {
+int filled = 0;
+for (int i = 0; i < users.size() && filled < 3 * teamSize; i++) {
+int direction = (i / 3) % 2;
+int idx = direction == 0 ? (i % 3) : (2 - i % 3);
+if (buckets.get(idx).size() < teamSize) {
+buckets.get(idx).add(users.get(i));
+filled++;
+}
+}
 
-            List<Integer> team = new ArrayList<>();
+List<Team> teams = new ArrayList<>();
+for (List<Integer> bucket : buckets) {
+if (bucket.size() == teamSize) {
+double score = calculateTeamScore(projectSkills, bucket, studentSkills);
+teams.add(new Team(projectId, bucket, score));
+}
+}
+return teams;
+}
 
-            for (int j = 0; j < teamSize; j++) {
-                team.add(users.get(i + j));
-            }
+// BACKWARD COMPATIBILITY
+public static List<Team> getTopTeams(int projectId) {
+return getTopTeams(projectId, 2024, "CSE", getTeamSize(projectId), -1);
+}
 
-            double score = calculateTeamScore(projectSkills, team, studentSkills);
-
-            teams.add(new Team(projectId, team, score));
-        }
-
-        teams.sort((a, b) -> Double.compare(b.getMatchScore(), a.getMatchScore()));
-
-        return teams.size() > 3 ? teams.subList(0, 3) : teams;
-    }
-
-    // BACKWARD COMPATIBILITY
-    public static List<Team> getTopTeams(int projectId) {
-        return getTopTeams(projectId, 2024, "CSE", getTeamSize(projectId));
-    }
-
-    public static Map<Integer, String> getAllUserNames() {
-        Map<Integer, String> names = new HashMap<>();
-
-        String sql = "SELECT id, name FROM users";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                names.put(rs.getInt("id"), rs.getString("name"));
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return names;
-    }
+public static List<Team> getTopTeams(int projectId, int batch, String branch, int teamSize) {
+return getTopTeams(projectId, batch, branch, teamSize, -1);
+}
 
     public static String getUserName(int userId) {
         String sql = "SELECT name FROM users WHERE id = ?";
@@ -203,5 +199,68 @@ public class SkillMatcher {
         }
 
         return "Unknown";
+    }
+
+    // Get all user names in one query
+    public static Map<Integer, String> getAllUserNamesForTeams(List<Team> teams) {
+        Map<Integer, String> names = new HashMap<>();
+        if (teams.isEmpty()) return names;
+        
+        // Collect all unique member IDs
+        Set<Integer> allIds = new HashSet<>();
+        for (Team t : teams) allIds.addAll(t.getMembers());
+        if (allIds.isEmpty()) return names;
+        
+        String placeholders = allIds.stream()
+            .map(id -> "?")
+            .collect(java.util.stream.Collectors.joining(","));
+        
+        String sql = "SELECT id, name FROM users WHERE id IN (" + placeholders + ")";
+        try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+            int i = 1;
+            for (int id : allIds) stmt.setInt(i++, id);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) names.put(rs.getInt("id"), rs.getString("name"));
+        } catch (Exception e) {
+            System.err.println("[SkillMatcher] getAllUserNamesForTeams failed: " + e.getMessage());
+        }
+        return names;
+    }
+
+    // Get all skills for all team members in one query
+    public static Map<Integer, String> getAllSkillStringsForTeams(List<Team> teams) {
+        Map<Integer, String> skillStrings = new HashMap<>();
+        if (teams.isEmpty()) return skillStrings;
+        
+        Set<Integer> allIds = new HashSet<>();
+        for (Team t : teams) allIds.addAll(t.getMembers());
+        if (allIds.isEmpty()) return skillStrings;
+        
+        String placeholders = allIds.stream()
+            .map(id -> "?")
+            .collect(java.util.stream.Collectors.joining(","));
+        
+        String sql = "SELECT user_id, skill_name, proficiency FROM skills WHERE user_id IN (" + placeholders + ")";
+        Map<Integer, List<String>> skillMap = new HashMap<>();
+        
+        try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
+            int i = 1;
+            for (int id : allIds) stmt.setInt(i++, id);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int uid = rs.getInt("user_id");
+                String skill = rs.getString("skill_name") + 
+                            "(" + rs.getString("proficiency").charAt(0) + ")";
+                skillMap.computeIfAbsent(uid, k -> new ArrayList<>()).add(skill);
+            }
+        } catch (Exception e) {
+            System.err.println("[SkillMatcher] getAllSkillStringsForTeams failed: " + e.getMessage());
+        }
+        
+        // Convert to display strings
+        for (Map.Entry<Integer, List<String>> entry : skillMap.entrySet()) {
+            skillStrings.put(entry.getKey(), String.join(", ", entry.getValue()));
+        }
+        return skillStrings;
     }
 }
