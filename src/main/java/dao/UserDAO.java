@@ -52,26 +52,25 @@ public class UserDAO {
     }
 
     // ─── LOGIN ────────────────────────────────────────────
-    public static User loginUser(String email, String passwordHash) {
+    public static User loginUser(String email, String passwordHash) 
+    { 
         String sql = "SELECT * FROM users WHERE email = ? AND password_hash = ?";
-
-        try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) {
-
+         try (PreparedStatement stmt = DBConnection.getConnection().prepareStatement(sql)) 
+         { 
             stmt.setString(1, email);
-            stmt.setString(2, passwordHash);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToUser(rs);
-                }
-            }
-
-        } catch (SQLException e) {
-            System.err.println("[UserDAO] loginUser failed: " + e.getMessage());
+             stmt.setString(2, passwordHash);
+              try (ResultSet rs = stmt.executeQuery()) 
+              {
+                 if (rs.next()) { return mapResultSetToUser(rs);
+               } 
+            } 
         }
-
-        return null;
-    }
+         catch (SQLException e) 
+         {
+             System.err.println("[UserDAO] loginUser failed: " + e.getMessage()); 
+            }
+             return null; 
+            }
 
     // ─── GET USER BY ID ───────────────────────────────────
     public static User getUserById(int userId) {

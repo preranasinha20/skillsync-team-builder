@@ -215,24 +215,29 @@ public class LoginScreen {
             String email = emailField.getText().trim();
             String password = passwordField.getText();
 
-            if (email.isEmpty() || password.isEmpty()) {
-                errorLabel.setText("Please fill in all fields.");
-                return;
-            }
+            try {
+                if (email == null || email.trim().isEmpty() || 
+                    password == null || password.trim().isEmpty()) {
+                    throw new exceptions.EmptyFieldException("Please fill in all fields.");
+                }
 
-            User user = UserDAO.loginUser(email, PasswordUtil.hash(password));
+                User user = UserDAO.loginUser(email, PasswordUtil.hash(password));
 
-            if (user == null) {
-                errorLabel.setText("Invalid email or password.");
-                return;
-            }
+                if (user == null) {
+                    errorLabel.setText("Invalid email or password.");
+                    return;
+                }
 
-            SessionManager.setUser(user);
+                SessionManager.setUser(user);
 
-            if ("TEACHER".equalsIgnoreCase(user.getRole())) {
-                stage.setScene(new TeacherHomeScreen().getScene());
-            } else {
-                new HomeFeedScreen(stage).show();
+                if ("TEACHER".equalsIgnoreCase(user.getRole())) {
+                    stage.setScene(new TeacherHomeScreen().getScene());
+                } else {
+                    new HomeFeedScreen(stage).show();
+                }
+
+            } catch (exceptions.EmptyFieldException ex) {
+                errorLabel.setText(ex.getMessage());
             }
         });
 
