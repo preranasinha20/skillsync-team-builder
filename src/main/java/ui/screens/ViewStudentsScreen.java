@@ -2,6 +2,7 @@ package ui.screens;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import dao.EventDAO;
@@ -14,25 +15,11 @@ import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
+import javafx.scene.text.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import model.Skill;
@@ -100,7 +87,6 @@ public class ViewStudentsScreen {
             "-fx-border-width: 0 0 1 0;"
         );
 
-        // Dropdowns populated from DB asynchronously
         ComboBox<String> batchBox = new ComboBox<>();
         batchBox.setPromptText("Select Batch");
         batchBox.setPrefWidth(160);
@@ -126,8 +112,8 @@ public class ViewStudentsScreen {
             "-fx-font-size: 12px;"
         );
 
-        Button loadBtn   = actionButton("Load", TeacherHomeScreen.CRIMSON);
-        Button clearBtn  = outlineButton("Clear");
+        Button loadBtn  = actionButton("Load", TeacherHomeScreen.CRIMSON);
+        Button clearBtn = outlineButton("Clear");
 
         ProgressIndicator loadSpinner = new ProgressIndicator();
         loadSpinner.setPrefSize(22, 22);
@@ -153,7 +139,7 @@ public class ViewStudentsScreen {
             placeholder("Select batch and branch above, then click Load")
         );
 
-        // Name
+        // Name column
         TableColumn<Student, String> nameCol = new TableColumn<>("NAME");
         nameCol.setPrefWidth(210);
         nameCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getName()));
@@ -179,31 +165,30 @@ public class ViewStudentsScreen {
             }
         });
 
-        // Email
+        // Email column
         TableColumn<Student, String> emailCol = new TableColumn<>("EMAIL");
         emailCol.setPrefWidth(210);
         emailCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEmail()));
         emailCol.setCellFactory(col -> plainCell("#555555", 12));
 
-        // Batch
+        // Batch column
         TableColumn<Student, String> batchCol = new TableColumn<>("BATCH");
         batchCol.setPrefWidth(80);
         batchCol.setCellValueFactory(d ->
             new SimpleStringProperty(String.valueOf(d.getValue().getBatch())));
         batchCol.setCellFactory(col -> chipCell("#eef3ff", "#4f8ef7"));
 
-        // Branch
+        // Branch column
         TableColumn<Student, String> branchCol = new TableColumn<>("BRANCH");
         branchCol.setPrefWidth(100);
         branchCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getBranch()));
         branchCol.setCellFactory(col -> chipCell("#fff0f3", TeacherHomeScreen.CRIMSON));
 
-        // Skills
+        // Skills column — reads from pre-loaded student object, NO DB call
         TableColumn<Student, String> skillCol = new TableColumn<>("SKILLS");
         skillCol.setPrefWidth(320);
         skillCol.setCellValueFactory(d -> {
-            // NOTE: this runs on FX thread; skills loaded per-row
-            List<Skill> skills = UserDAO.getSkillsByUser(d.getValue().getId());
+            List<Skill> skills = d.getValue().getSkills();
             return new SimpleStringProperty(
                 skills.stream().map(Skill::getSkillName).collect(Collectors.joining(", "))
             );
@@ -233,12 +218,6 @@ public class ViewStudentsScreen {
 
         table.getColumns().addAll(nameCol, emailCol, batchCol, branchCol, skillCol);
 
-        // Style header via CSS string
-        table.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-border-color: transparent;"
-        );
-
         VBox tableWrapper = new VBox(table);
         tableWrapper.setPadding(new Insets(20, 30, 20, 30));
         tableWrapper.setStyle("-fx-background-color: " + TeacherHomeScreen.BG + ";");
@@ -249,7 +228,7 @@ public class ViewStudentsScreen {
         root.getChildren().add(main);
         Scene scene = new Scene(root, 1100, 660);
 
-        // ── Load dropdowns asynchronously (no freeze) ─────────────
+        // ── Load dropdowns asynchronously ────────────────────────
         Task<Object[]> dropdownTask = new Task<>() {
             @Override protected Object[] call() {
                 return new Object[]{
@@ -264,9 +243,6 @@ public class ViewStudentsScreen {
             batchBox.getItems().addAll(batches);
             branchBox.getItems().addAll(branches);
         }));
-        dropdownTask.setOnFailed(e ->
-            System.err.println("[ViewStudents] dropdown load failed: " +
-                dropdownTask.getException().getMessage()));
         new Thread(dropdownTask).start();
 
         // ── Load students ─────────────────────────────────────────
@@ -289,10 +265,42 @@ public class ViewStudentsScreen {
 
             int finalBatch = batch;
             Task<List<Student>> loadTask = new Task<>() {
-                @Override protected List<Student> call() {
-                    return UserDAO.getStudentsByBatchAndBranch(finalBatch, branchStr);
+                @Override protected List<Student> call() throws Exception {
+                    List<Student> students = UserDAO.getStudentsByBatchAndBranch(finalBatch, branchStr);
+
+                    // Bulk load all skills in ONE query
+                    if (!students.isEmpty()) {
+                        String placeholders = students.stream()
+                            .map(s -> "?")
+                            .collect(Collectors.joining(","));
+                        String sql = "SELECT user_id, skill_name FROM skills WHERE user_id IN (" + placeholders + ")";
+                        Map<Integer, List<String>> skillMap = new java.util.HashMap<>();
+
+                        try (java.sql.PreparedStatement stmt =
+                                database.DBConnection.getConnection().prepareStatement(sql)) {
+                            int i = 1;
+                            for (Student s : students) stmt.setInt(i++, s.getId());
+                            java.sql.ResultSet rs = stmt.executeQuery();
+                            while (rs.next()) {
+                                int uid = rs.getInt("user_id");
+                                skillMap.computeIfAbsent(uid, k -> new java.util.ArrayList<>())
+                                        .add(rs.getString("skill_name"));
+                            }
+                        }
+
+                        for (Student s : students) {
+                            List<Skill> skillObjs = skillMap
+                                .getOrDefault(s.getId(), new java.util.ArrayList<>())
+                                .stream()
+                                .map(name -> new Skill(s.getId(), name, ""))
+                                .collect(Collectors.toList());
+                            s.setSkills(skillObjs);
+                        }
+                    }
+                    return students;
                 }
             };
+
             loadTask.setOnSucceeded(ev -> Platform.runLater(() -> {
                 loadSpinner.setVisible(false);
                 loadBtn.setDisable(false);
@@ -310,17 +318,17 @@ public class ViewStudentsScreen {
                 int shown = table.getItems().size();
                 countBadge.setText(shown + " student" + (shown == 1 ? "" : "s"));
             }));
+
             loadTask.setOnFailed(ev -> Platform.runLater(() -> {
                 loadSpinner.setVisible(false);
                 loadBtn.setDisable(false);
-                countBadge.setText("Error");
-                showWarn(root, "Failed to load students: " +
-                    loadTask.getException().getMessage());
+                showWarn(root, "Failed to load students: " + loadTask.getException().getMessage());
             }));
+
             new Thread(loadTask).start();
         });
 
-        // Live search filter
+        // ── Live search ───────────────────────────────────────────
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             String q = newVal.trim().toLowerCase();
             if (q.isBlank()) {
@@ -337,6 +345,7 @@ public class ViewStudentsScreen {
             }
         });
 
+        // ── Clear ─────────────────────────────────────────────────
         clearBtn.setOnAction(e -> {
             batchBox.setValue(null);
             branchBox.setValue(null);
@@ -346,7 +355,7 @@ public class ViewStudentsScreen {
             countBadge.setText("0 students");
         });
 
-        // Export with FileChooser — actual download
+        // ── Export ────────────────────────────────────────────────
         exportBtn.setOnAction(e -> {
             if (table.getItems().isEmpty()) {
                 showWarn(root, "No students to export. Load students first.");
@@ -364,8 +373,7 @@ public class ViewStudentsScreen {
             File file = chooser.showSaveDialog(stage);
             if (file == null) return;
 
-            List<Student> toExport = table.getItems()
-                .stream().collect(Collectors.toList());
+            List<Student> toExport = new java.util.ArrayList<>(table.getItems());
             try {
                 new StudentExporter().exportToFile(toExport, file);
                 showInfo(root, "✅  Exported " + toExport.size() + " students to:\n" + file.getName());
