@@ -1,124 +1,49 @@
-# 🚀 SkillSync – Skill-Based Intelligent Team Builder
+A desktop application that automates team formation for academic and professional projects using skill-based compatibility scoring. Teachers post projects, students apply, and the system generates optimal team combinations with match percentages.
+Features
+For Teachers
 
-SkillSync is a Java-based backend system that automatically forms optimized student teams based on skills, availability, and project requirements.
+Post projects with required skill sets, visible to students filtered by department and year
+Request auto-generated team combination sheets for an entire batch or branch
+Export optimal team assignments as CSV with compatibility scores per team
 
-It replaces manual team allocation with a **data-driven, structured, and scalable approach** using JDBC and MySQL.
+For Students
 
----
+Browse available projects matching their department and year
+Build or join teams manually through the platform
+View profile with skill scores and team history
 
-## 📌 Key Features
+Core Algorithm
 
-* 🔍 Skill-based team formation
-* ⚖ Balanced team distribution
-* 📊 Data-driven project allocation
-* 🔗 Relational database design (MySQL)
-* 🧩 Modular backend using DAO pattern
+Skill Matcher scores student compatibility based on complementary skill sets
+Team Builder generates balanced combinations across a batch, optimizing for equal skill distribution
+Match percentage calculated per team to quantify formation quality
 
----
-
-## 🛠 Tech Stack
-
-* **Java (JDK 17+)**
-* **JDBC**
-* **MySQL (Railway Cloud)**
-* **Maven**
-* **Git & GitHub**
-
----
-
-## 🗄 Database Design
-
-The system uses a relational database with the following core tables:
-
-### 👤 Users
-
-* Stores student details
-
-### 🧠 Skills
-
-* Stores available skills
-
-### 👥 Teams (by teammate)
-
-* Handles team structure
-
-### 📁 Projects (⭐ Added by Manas)
-
-* Stores project details
-
-### 🔗 Project Skills (⭐ Added by Manas)
-
-* Maps required skills to projects
-
----
+Tech Stack
+Language: Java
+UI Framework: JavaFX
+Build Tool: Maven
+Architecture: MVC — model, service, UI layers
+Data: DAO pattern with CSV export support
 
 
-## ⚙️ How to Run the Project
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Manarsenic/SkillSync-Team-Builder.git
-cd SkillSync-Team-Builder
-```
-
-### 2. Compile using Maven
-
-```bash
-mvn clean compile
-```
-
-### 3. Test database connection
-
-```bash
-mvn exec:java -Dexec.mainClass="database.DBConnection"
-```
-
-### 4. Create tables
-
-Run schemas in this order:
-
-```bash
-mvn exec:java -Dexec.mainClass="database.UserSchema"
-mvn exec:java -Dexec.mainClass="database.TeamSchema"
-mvn exec:java -Dexec.mainClass="database.ProjectSchema"
-```
-
----
-
-## 🧪 Output
-
-After running schemas, database will contain:
-
-* users
-* skills
-* teams
-* projects
-* project_skills
-
----
-
-## 📌 Future Improvements
-
-* Add ProjectDAO for CRUD operations
-* Implement team allocation algorithm
-* Build frontend interface
-* Add REST APIs
-
----
-
-## 🤝 Contributors
+Project Structure
+SkillSync/
+├── src/main/java/
+│   ├── model/          # User, Team data models
+│   ├── service/        # SkillMatcher, TeamBuilder, CSVExporter
+│   └── ui/screens/     # JavaFX screens per role
+└── pom.xml
 
 
-* Manas Kumar
-* Chandana
-* Prerana Sinha
----
+How It Works
 
-## 📄 License
+Teacher uploads a project with required skills and target department/year
+Students view available projects on their dashboard and form teams
+For bulk assignment, teacher requests an optimized combination sheet
+SkillSync scores all possible student combinations using the Skill Matcher
+Balanced teams are generated and exported as a CSV with match percentages
 
-This project is licensed under the Apache 2.0 License.
-
----
-
-⭐ If you like this project, consider starring the repo!
+Running Locally
+bash# Requires Java 11+ and Maven
+mvn clean install
+mvn javafx:run
